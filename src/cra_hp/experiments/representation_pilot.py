@@ -19,6 +19,7 @@ import seaborn as sns
 import yaml
 
 from cra_hp.bootstrap import bootstrap_matching
+from cra_hp.data import load_wikitext_2_raw
 from cra_hp.extraction import extract_head_representations
 from cra_hp.matching import (
     partial_hungarian,
@@ -36,38 +37,6 @@ def _git_sha() -> str | None:
         ).strip()
     except (OSError, subprocess.CalledProcessError):
         return None
-
-
-def _load_shared_texts(config: dict[str, Any]) -> tuple[list[str], list[int]]:
-    try:
-        from datasets import load_dataset
-    except ImportError as exc:
-        raise RuntimeError("Install model extras with: pip install -e '.[models]'") from exc
-
-    data_cfg = config["data"]
-    dataset = load_dataset(
-        data_cfg["dataset"],
-        data_cfg.get("config"),
-        split=data_cfg["split"],
-    )
-    text_field = data_cfg.get("text_field", "text")
-    min_characters = int(data_cfg.get("min_characters", 1))
-    candidates = [
-        (index, str(row[text_field]).strip())
-        for index, row in enumerate(dataset)
-        if str(row.get(text_field, "")).strip()
-        and len(str(row.get(text_field, "")).strip()) >= min_characters
-    ]
-    count = int(data_cfg["sample_count"])
-    if len(candidates) < count:
-        raise ValueError(f"Dataset has only {len(candidates)} usable rows; {count} requested")
-
-    rng = np.random.default_rng(int(data_cfg["sampling_seed"]))
-    selected_positions = np.sort(
-        rng.choice(len(candidates), size=count, replace=False)
-    )
-    selected = [candidates[int(position)] for position in selected_positions]
-    return [text for _, text in selected], [index for index, _ in selected]
 
 
 def _save_matches(path: Path, matches: list[Any], source_meta: dict[str, Any],
@@ -96,7 +65,6 @@ def run(config_path: str) -> Path:
     np.random.seed(seed)
 
     try:
-        import datasets
         import torch
         import transformers
 
@@ -117,13 +85,13 @@ def run(config_path: str) -> Path:
     run_dir = output_root / run_id
     run_dir.mkdir(parents=True, exist_ok=False)
 
-    texts, sample_ids = _load_shared_texts(config)
+    texts, sample_ids, data_metadata = load_wikitext_2_raw(config["data"])
     sample_hashes = [
         hashlib.sha256(text.encode("utf-8")).hexdigest() for text in texts
     ]
     (run_dir / "samples.json").write_text(
         json.dumps(
-            {"dataset": config["data"], "sample_ids": sample_ids,
+            {"dataset": data_metadata, "sample_ids": sample_ids,
              "sample_sha256": sample_hashes},
             indent=2,
         ),
@@ -282,7 +250,7 @@ def run(config_path: str) -> Path:
         "python": platform.python_version(),
         "torch": torch.__version__,
         "transformers": transformers.__version__,
-        "datasets": datasets.__version__,
+        "dataset_metadata": data_metadata,
         "numpy": np.__version__,
         "pandas": pd.__version__,
         "device": device,
