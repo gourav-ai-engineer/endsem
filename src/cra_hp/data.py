@@ -31,7 +31,6 @@ def _fetch_page(
             "split": split,
             "offset": offset,
             "length": WIKITEXT_2_PAGE_SIZE,
-            "revision": revision,
         }
     )
     request = urllib.request.Request(
@@ -109,9 +108,11 @@ def load_wikitext_2_raw(
 
     candidates: list[tuple[int, str]] = []
     fetched_rows = 0
+    fetched_page_count = 0
 
     def add_page(offset: int, payload: dict[str, Any]) -> None:
-        nonlocal fetched_rows
+        nonlocal fetched_rows, fetched_page_count
+        fetched_page_count += 1
         rows = payload["rows"]
         fetched_rows += len(rows)
         for local_index, item in enumerate(rows):
@@ -152,12 +153,11 @@ def load_wikitext_2_raw(
         "dataset": WIKITEXT_2_DATASET,
         "config": dataset_config,
         "split": split,
-        "dataset_revision": revision,
+        "dataset_revision": "main (Dataset Viewer API default; not commit-pinned)",
         "source_url": WIKITEXT_2_API_URL,
         "total_row_count": total_rows,
         "page_size": WIKITEXT_2_PAGE_SIZE,
-        "fetched_page_count": len(selected_pages)
-        + (len(remaining_pages) and 0),
+        "fetched_page_count": fetched_page_count,
         "fetched_row_count": fetched_rows,
         "usable_row_count": len(candidates),
         "min_characters": min_characters,
@@ -168,10 +168,5 @@ def load_wikitext_2_raw(
             "blank and short rows are excluded."
         ),
     }
-    # Count pages actually fetched, including any extra pages fetched to meet
-    # the requested sample size.
-    metadata["fetched_page_count"] = fetched_rows // WIKITEXT_2_PAGE_SIZE
-    if fetched_rows % WIKITEXT_2_PAGE_SIZE:
-        metadata["fetched_page_count"] += 1
     metadata["sample_row_indices"] = [index for index, _ in selected]
     return [text for _, text in selected], [index for index, _ in selected], metadata
