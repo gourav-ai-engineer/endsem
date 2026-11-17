@@ -42,14 +42,14 @@ Heads that exhibit similar task-conditioned causal effects may provide a more us
 
 ## Quick start
 
-The initial foundation is documentation/configuration only. The experiment environment and runnable pilot will be added in the next stage. See [the research protocol](research/research_protocol.md) and [the feasibility configuration](configs/feasibility.yaml).
+The representation-only pilot implementation is now present. Install model extras and run `python -m cra_hp.experiments.representation_pilot --config configs/feasibility.yaml`. The first full run downloads WikiText-2, BERT-base and GPT-2; it has **not yet been executed or validated on real model activations**. See [setup](docs/setup.md), [the research protocol](research/research_protocol.md) and [the feasibility configuration](configs/feasibility.yaml).
 
 ## Current status
 
 | Stage | Status |
 |---|---|
-| 1. Research foundation | In progress |
-| 2. Representation pilot | Not started |
+| 1. Research foundation | Files committed; CI validation in progress |
+| 2. Representation pilot | Code implemented; model execution pending |
 | 3. Go/no-go | Not started |
 | 4. Causal correspondence | Not started |
 | 5. Importance transfer | Not started |
