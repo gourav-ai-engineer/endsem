@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from typing_extensions import Self
+
 import pytest
 
 from cra_hp import data
@@ -12,7 +14,7 @@ class _FakeResponse:
     def __init__(self, payload: dict[str, Any]) -> None:
         self.payload = payload
 
-    def __enter__(self) -> "_FakeResponse":
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *_: object) -> None:
@@ -53,7 +55,7 @@ def test_load_wikitext_api_is_deterministic(monkeypatch: pytest.MonkeyPatch) -> 
         "min_characters": 20,
     }
     texts_a, ids_a, metadata_a = data.load_wikitext_2_raw(config)
-    texts_b, ids_b, metadata_b = data.load_wikitext_2_raw(config)
+    texts_b, ids_b, _metadata_b = data.load_wikitext_2_raw(config)
 
     assert texts_a == texts_b
     assert ids_a == ids_b
