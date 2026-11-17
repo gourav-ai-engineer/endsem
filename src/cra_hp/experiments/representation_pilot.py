@@ -321,7 +321,7 @@ def run(config_path: str) -> Path:
         "pandas": pd.__version__,
         "device": device,
         "sample_count": len(texts),
-        "sampled_page_count": int(len(np.unique(cluster_ids))),
+        "sampled_page_count": len(np.unique(cluster_ids)),
         "source_shape": list(source.shape),
         "target_shape": list(target.shape),
         "threshold": threshold,
