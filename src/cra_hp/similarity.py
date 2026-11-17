@@ -54,8 +54,38 @@ def cka_similarity_matrix(
     if source.shape[1] != target.shape[1]:
         raise ValueError("Source and target must use the same paired examples")
 
+    # Center each head's sample-by-feature matrix once.
+    source_centered = source.astype(np.float64, copy=True)
+    target_centered = target.astype(np.float64, copy=True)
+    source_centered -= source_centered.mean(axis=1, keepdims=True)
+    target_centered -= target_centered.mean(axis=1, keepdims=True)
+
+    # Feature-space covariance matrices keep memory small (head x d x d).
+    source_cov = np.einsum(
+        "hni,hnj->hij", source_centered, source_centered, optimize=True
+    )
+    target_cov = np.einsum(
+        "hni,hnj->hij", target_centered, target_centered, optimize=True
+    )
+    source_norm = np.sqrt(np.square(source_cov).sum(axis=(1, 2)))
+    target_norm = np.sqrt(np.square(target_cov).sum(axis=(1, 2)))
+    denominator = source_norm[:, None] * target_norm[None, :]
+
     scores = np.zeros((source.shape[0], target.shape[0]), dtype=np.float64)
-    for i in range(source.shape[0]):
-        for j in range(target.shape[0]):
-            scores[i, j] = linear_cka(source[i], target[j], epsilon=epsilon)
+    # Chunk source heads to bound the temporary cross-covariance tensor.
+    chunk_size = max(1, min(8, source.shape[0]))
+    for start in range(0, source.shape[0], chunk_size):
+        stop = min(start + chunk_size, source.shape[0])
+        cross = np.einsum(
+            "hni,knj->hkij",
+            source_centered[start:stop],
+            target_centered,
+            optimize=True,
+        )
+        numerator = np.square(cross).sum(axis=(2, 3))
+        block_denominator = denominator[start:stop]
+        valid = block_denominator > epsilon
+        block = np.zeros_like(numerator)
+        block[valid] = numerator[valid] / block_denominator[valid]
+        scores[start:stop] = np.clip(block, 0.0, 1.0)
     return scores
