@@ -59,9 +59,10 @@ matching:
 
 bootstrap:
   debug_replicates: 5
-  pilot_replicates: 50
+  pilot_replicates: 100
   final_target_replicates: 200
-  permutation_replicates: 50
+  permutation_replicates: 100
+  random_replicates: 500
   sample_with_replacement: true
 
 outputs:
