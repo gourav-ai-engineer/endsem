@@ -42,7 +42,7 @@ def _fetch_page(
             with urllib.request.urlopen(request, timeout=timeout) as response:
                 payload = json.loads(response.read().decode("utf-8"))
             if not isinstance(payload.get("rows"), list):
-                raise RuntimeError("Hugging Face rows API returned an invalid response")
+                raise TypeError("Hugging Face rows API returned an invalid response")
             return payload
         except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
             last_error = exc
