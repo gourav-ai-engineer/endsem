@@ -96,9 +96,9 @@ def run(config_path: str) -> Path:
     np.random.seed(seed)
 
     try:
+        import datasets
         import torch
         import transformers
-        import datasets
 
         torch.manual_seed(seed)
         torch.set_num_threads(int(repro.get("num_threads", 4)))
