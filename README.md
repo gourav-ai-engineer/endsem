@@ -48,7 +48,7 @@ The representation-only pilot implementation is now present. Install model extra
 
 | Stage | Status |
 |---|---|
-| 1. Research foundation | <span>Completed and merged to main; CI passed</span> |
+| 1. Research foundation | Completed and merged to main; CI passed |
 | 2. Representation pilot | Implementation merged; full model run pending |
 | 3. Go/no-go | Not started |
 | 4. Causal correspondence | Not started |
