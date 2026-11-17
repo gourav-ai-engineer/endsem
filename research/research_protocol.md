@@ -46,16 +46,18 @@ Exit condition: all methods, primary metrics, data splits and go/no-go rules are
 
 - Compute the 144 × 144 linear CKA matrix.
 - Run partial global assignment with dummy unmatched nodes.
-- Baselines: same-index, same-layer constrained, random and sample-permutation null.
+- Baselines: same-index, same-layer constrained, repeated fixed-cardinality random assignments, and sample-permutation null.
 - Save raw similarity matrix, assignment, unmatched heads and thresholds.
 - Plot heatmap with layer/head axes and matched-pair overlays.
 
 ### Bootstrap
 
 - Debug: 5 replicates.
-- Pilot report: at least 50 paired-example bootstrap replicates.
-- Main report: target 200 if resources permit.
-- Report match frequency, assignment stability, Jaccard and uncertainty.
+- Pilot report: at least 100 page-cluster bootstrap replicates for WikiText-2; iid row bootstrap is diagnostic only when rows are clustered by source page.
+- Main report: target 200 cluster bootstrap replicates if resources permit.
+- Report match frequency, assignment stability, Jaccard, sampled cluster count and uncertainty.
+- For permutation testing, fix the match cardinality to the observed partial assignment and recompute the maximum-weight k-matching in every shuffled replicate. Never use a thresholded null matching whose empty result is silently converted to a score of zero.
+- Estimate the random baseline from at least 500 independent fixed-cardinality assignments; do not report one random draw as the baseline distribution.
 
 ### Representation-only go/no-go
 
@@ -129,3 +131,14 @@ Measure:
 ## Run naming
 
 Use `<stage>_<modelpair>_<dataset>_<seed>_<short-config-hash>`. Store a JSON manifest alongside every output. Never overwrite an existing run directory.
+
+
+## Stage 2 statistical correction (2026-11-17)
+
+The initial pilot's permutation statistic was invalid: it used thresholded partial matching and replaced an empty null assignment with a mean score of zero. This produced a degenerate null distribution and an uninformative empirical p-value. The corrected implementation fixes the match cardinality at the observed partial-match count and computes a maximum-weight assignment for both observed and permuted similarity matrices. The same statistic and cardinality are used in every replicate.
+
+The initial random baseline contained one random assignment. The corrected pilot estimates its score distribution from 500 independent fixed-cardinality assignments.
+
+The initial bootstrap resampled individual rows even though WikiText examples were sampled from a limited set of API pages. The corrected pilot resamples page clusters (page index = row index // API page size). Report the number of sampled pages; the current 256-row/12-page sample is still a feasibility sample and not a representative corpus-wide sample.
+
+These corrections improve statistical validity but do not upgrade representation similarity into evidence of causal correspondence or pruning-utility transfer.
