@@ -24,6 +24,7 @@ The first run produced a global partial-Hungarian mean CKA of about 0.6851, comp
 
 - Add exact fixed-cardinality maximum-weight Hungarian matching.
 - Permutation test fixes k to the observed partial-match count and recomputes the maximum-weight k-matching for each shuffled pairing. The observed and null statistics now use the same statistic and cardinality.
+- Compare same-index and same-layer constrained assignments at the same fixed match count as the global assignment.
 - Estimate random assignment performance over 500 independent fixed-cardinality random assignments.
 - Resample WikiText API pages as clusters in the bootstrap.
 - Increase pilot bootstrap and permutation replicates to 100.
