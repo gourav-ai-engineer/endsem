@@ -29,3 +29,8 @@ hf_cache/
 results/**/activations/
 results/**/checkpoints/
 results/**/cache/
+
+# Large raw head activation tensors (keep derived metrics and figures)
+results/**/encoder_representations.npz
+results/**/decoder_representations.npz
+results/**/head_activations/
