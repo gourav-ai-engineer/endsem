@@ -1,3 +1,4 @@
+from importlib import import_module
 from pathlib import Path
 
 
@@ -35,5 +36,5 @@ def test_feasibility_config_declares_pilot_dimensions() -> None:
 
 
 def test_experiment_modules_import_without_model_extras() -> None:
-    import cra_hp.extraction  # noqa: F401
-    import cra_hp.experiments.representation_pilot  # noqa: F401
+    import_module("cra_hp.extraction")
+    import_module("cra_hp.experiments.representation_pilot")
