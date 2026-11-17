@@ -98,17 +98,20 @@ def extract_head_representations(
     for layer_index, layer in enumerate(layers):
         projection = _projection_module(layer, model_type)
 
+        capture_store = captured
+
         def capture_input(
             _module: Any,
             args: tuple[Any, ...],
             kwargs: dict[str, Any],
             *,
             index: int = layer_index,
+            store: dict[int, Any] = capture_store,
         ) -> None:
             hidden_states = args[0] if args else kwargs.get("input")
             if hidden_states is None:
                 raise RuntimeError(f"Could not capture projection input for layer {index}")
-            captured[index] = hidden_states.detach()
+            store[index] = hidden_states.detach()
 
         handles.append(projection.register_forward_pre_hook(capture_input, with_kwargs=True))
 
