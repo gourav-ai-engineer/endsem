@@ -1,7 +1,4 @@
-from pathlib import Path
-
-
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = __import__("pathlib").Path(__file__).resolve().parents[1]
 
 
 def test_required_research_documents_exist() -> None:
