@@ -32,3 +32,8 @@ def test_feasibility_config_declares_pilot_dimensions() -> None:
     assert config["extraction"]["expected_heads"] == 144
     assert config["bootstrap"]["pilot_replicates"] >= 50
     assert config["bootstrap"]["permutation_replicates"] >= 20
+
+
+def test_experiment_modules_import_without_model_extras() -> None:
+    import cra_hp.extraction  # noqa: F401
+    import cra_hp.experiments.representation_pilot  # noqa: F401
