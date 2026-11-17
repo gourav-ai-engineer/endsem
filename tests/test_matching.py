@@ -61,3 +61,15 @@ def test_fixed_cardinality_zero_and_invalid_count() -> None:
     assert fixed_cardinality_hungarian(scores, 0) == []
     with pytest.raises(ValueError):
         fixed_cardinality_hungarian(scores, 4)
+
+
+def test_fixed_cardinality_respects_allowed_mask() -> None:
+    scores = np.array([
+        [0.1, 0.99, 0.2],
+        [0.98, 0.1, 0.3],
+        [0.2, 0.4, 0.95],
+    ])
+    allowed = np.eye(3, dtype=bool)
+    matches = fixed_cardinality_hungarian(scores, 2, allowed_mask=allowed)
+    assert len(matches) == 2
+    assert all(match.source_head == match.target_head for match in matches)
