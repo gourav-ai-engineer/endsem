@@ -15,8 +15,10 @@ task:
   dataset: glue
   config: sst2
   train_split: train
-  validation_split: validation
-  test_split: validation
+  validation_split: train_holdout
+  train_holdout_fraction: 0.1
+  train_holdout_seed: 20261117
+  final_evaluation_split: validation
   max_length: 128
   readout:
     bert: cls
