@@ -247,7 +247,6 @@ def run(config_path: str) -> Path:
     }
 
     bootstrap_frame, bootstrap_summary = bootstrap_matching(
-    bootstrap_frame, bootstrap_summary = bootstrap_matching(
         source,
         target,
         replicates=int(bootstrap_cfg["pilot_replicates"]),
