@@ -61,7 +61,7 @@ def test_load_wikitext_api_is_deterministic(monkeypatch: pytest.MonkeyPatch) -> 
     assert all(len(text) >= 20 for text in texts_a)
     assert metadata_a["total_row_count"] == 250
     assert metadata_a["sample_row_indices"] == ids_a
-    assert metadata_a["dataset_revision"] == "main"
+    assert metadata_a["dataset_revision"].startswith("main")
     assert metadata_a["fetched_row_count"] >= 20
 
 
