@@ -60,7 +60,7 @@ def bootstrap_matching(
             indices = np.concatenate(group_indices)
         if len(indices) < 2:
             raise RuntimeError("Bootstrap replicate contains fewer than two examples")
-        sampled_example_counts.append(int(len(indices)))
+        sampled_example_counts.append(len(indices))
         scores = cka_similarity_matrix(source[:, indices, :], target[:, indices, :])
         pairs = matches_to_pairs(partial_hungarian(scores, threshold=threshold))
         pair_sets.append(pairs)
