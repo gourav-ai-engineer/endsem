@@ -1,0 +1,72 @@
+project:
+  name: cra_hp
+  stage: representation_pilot
+  protocol_version: "0.1"
+
+reproducibility:
+  seed: 20261117
+  deterministic_algorithms: false
+  num_threads: 4
+
+models:
+  encoder:
+    id: bert-base-uncased
+    revision: main
+    expected_layers: 12
+    expected_heads_per_layer: 12
+  decoder:
+    id: gpt2
+    revision: main
+    expected_layers: 12
+    expected_heads_per_layer: 12
+  load_sequentially: true
+  dtype: float32
+  device: auto
+
+data:
+  dataset: wikitext
+  config: wikitext-2-raw-v1
+  split: train
+  sample_count: 256
+  sampling_seed: 20261117
+  max_length: 64
+  min_characters: 20
+  text_field: text
+
+extraction:
+  pooling: masked_mean
+  hook_point: attention_head_context_before_output_projection
+  batch_size: 2
+  save_per_example: true
+  expected_heads: 144
+
+similarity:
+  method: linear_cka
+  center: true
+  compute_dtype: float64
+  epsilon: 1.0e-12
+
+matching:
+  method: partial_hungarian
+  allow_unmatched: true
+  unmatched_threshold: 0.15
+  baselines:
+    - same_index
+    - same_layer_hungarian
+    - global_partial_hungarian
+    - random
+    - permutation_null
+
+bootstrap:
+  debug_replicates: 5
+  pilot_replicates: 50
+  final_target_replicates: 200
+  permutation_replicates: 50
+  sample_with_replacement: true
+
+outputs:
+  root: results/02_representation_pilot
+  save_similarity_csv: true
+  save_matching_csv: true
+  save_heatmap: true
+  save_manifest: true

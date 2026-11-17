@@ -1,0 +1,31 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+.env
+.env.*
+!.env.example
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Model weights and large datasets
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+data/raw/
+data/processed/
+.cache/
+hf_cache/
+
+# Run outputs: commit small curated reports, not bulky intermediates
+results/**/activations/
+results/**/checkpoints/
+results/**/cache/
