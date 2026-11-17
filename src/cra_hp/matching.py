@@ -61,6 +61,7 @@ def partial_hungarian(
 def fixed_cardinality_hungarian(
     scores: FloatArray,
     matched_count: int,
+    allowed_mask: NDArray[np.bool_] | None = None,
 ) -> list[Match]:
     """Return the maximum-weight one-to-one assignment with exactly k pairs.
 
@@ -72,6 +73,12 @@ def fixed_cardinality_hungarian(
     """
     matrix = _validated_scores(scores)
     n_source, n_target = matrix.shape
+    if allowed_mask is not None:
+        allowed_mask = np.asarray(allowed_mask, dtype=bool)
+        if allowed_mask.shape != matrix.shape:
+            raise ValueError("allowed_mask must have the same shape as scores")
+        if int(allowed_mask.sum()) < matched_count:
+            raise ValueError("allowed_mask has fewer than matched_count allowed edges")
     if not isinstance(matched_count, (int, np.integer)):
         raise TypeError("matched_count must be an integer")
     k = int(matched_count)
@@ -87,6 +94,8 @@ def fixed_cardinality_hungarian(
     size = n_source + n_dummy_rows
     cost = np.zeros((size, size), dtype=np.float64)
     cost[:n_source, :n_target] = -matrix
+    if allowed_mask is not None:
+        cost[:n_source, :n_target][~allowed_mask] = 1.0e6
     if n_dummy_rows and n_dummy_columns:
         cost[n_source:, n_target:] = 1.0e6
 
@@ -100,6 +109,10 @@ def fixed_cardinality_hungarian(
         raise RuntimeError(
             f"Fixed-cardinality assignment returned {len(matches)} pairs; expected {k}"
         )
+    if allowed_mask is not None and any(
+        not allowed_mask[item.source_head, item.target_head] for item in matches
+    ):
+        raise ValueError("No feasible one-to-one assignment exists for this allowed_mask")
     return sorted(matches, key=lambda item: item.source_head)
 
 
