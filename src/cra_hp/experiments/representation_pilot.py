@@ -160,6 +160,21 @@ def run(config_path: str) -> Path:
     matching_cfg = config["matching"]
     threshold = float(matching_cfg["unmatched_threshold"])
     global_matches = partial_hungarian(similarity, threshold=threshold)
+    matched_count = len(global_matches)
+    same_index_mask = np.eye(similarity.shape[0], similarity.shape[1], dtype=bool)
+    source_layers = (
+        np.arange(similarity.shape[0]) // int(encoder_metadata["num_heads_per_layer"])
+    )
+    target_layers = (
+        np.arange(similarity.shape[1]) // int(decoder_metadata["num_heads_per_layer"])
+    )
+    same_layer_mask = source_layers[:, None] == target_layers[None, :]
+    same_index_fixed = fixed_cardinality_hungarian(
+        similarity, matched_count, allowed_mask=same_index_mask
+    )
+    same_layer_fixed = fixed_cardinality_hungarian(
+        similarity, matched_count, allowed_mask=same_layer_mask
+    )
     encoder_meta = {
         "num_heads_per_layer": int(encoder_metadata["num_heads_per_layer"]),
     }
@@ -188,7 +203,20 @@ def run(config_path: str) -> Path:
         encoder_metadata, decoder_metadata, "same_layer_hungarian"
     ))
 
-    matched_count = len(global_matches)
+    _save_matches(
+        run_dir / "matches_same_index_fixed_k.csv",
+        same_index_fixed,
+        encoder_metadata,
+        decoder_metadata,
+        "same_index_fixed_cardinality",
+    )
+    _save_matches(
+        run_dir / "matches_same_layer_fixed_k.csv",
+        same_layer_fixed,
+        encoder_metadata,
+        decoder_metadata,
+        "same_layer_fixed_cardinality",
+    )
     random_baseline = random_matching(similarity, matched_count, seed=seed)
     all_match_rows.extend(_save_matches(
         run_dir / "matches_random.csv", random_baseline,
@@ -334,9 +362,17 @@ def run(config_path: str) -> Path:
                 "matched_count": len(same_index),
                 "mean_matched_score": mean_match_score(same_index),
             },
-            "same_layer_hungarian": {
+            "same_layer_hungarian_thresholded": {
                 "matched_count": len(same_layer),
                 "mean_matched_score": mean_match_score(same_layer),
+            },
+            "same_index_fixed_cardinality": {
+                "matched_count": len(same_index_fixed),
+                "mean_matched_score": mean_match_score(same_index_fixed),
+            },
+            "same_layer_fixed_cardinality": {
+                "matched_count": len(same_layer_fixed),
+                "mean_matched_score": mean_match_score(same_layer_fixed),
             },
         },
         "random_baseline_distribution": random_summary,
