@@ -213,7 +213,40 @@ def run(config_path: str) -> Path:
     ))
     pd.DataFrame(all_match_rows).to_csv(run_dir / "all_matches.csv", index=False)
 
+    # Break paired-example correspondence to form an empirical null distribution.
     bootstrap_cfg = config["bootstrap"]
+    permutation_replicates = int(bootstrap_cfg.get("permutation_replicates", 50))
+    permutation_rng = np.random.default_rng(seed + 1)
+    observed_mean = (
+        float(np.mean([item.score for item in global_matches])) if global_matches else 0.0
+    )
+    permutation_rows = []
+    for replicate in range(permutation_replicates):
+        shuffled_indices = permutation_rng.permutation(source.shape[1])
+        null_scores = cka_similarity_matrix(source, target[:, shuffled_indices, :])
+        null_matches = partial_hungarian(null_scores, threshold=threshold)
+        null_mean = (
+            float(np.mean([item.score for item in null_matches])) if null_matches else 0.0
+        )
+        permutation_rows.append({
+            "replicate": replicate,
+            "matched_count": len(null_matches),
+            "mean_matched_score": null_mean,
+        })
+    pd.DataFrame(permutation_rows).to_csv(run_dir / "permutation_null.csv", index=False)
+    null_values = [row["mean_matched_score"] for row in permutation_rows]
+    permutation_summary = {
+        "replicates": permutation_replicates,
+        "observed_mean_matched_score": observed_mean,
+        "null_mean": float(np.mean(null_values)) if null_values else None,
+        "null_std": float(np.std(null_values, ddof=1)) if len(null_values) > 1 else None,
+        "empirical_p_value": (
+            (1 + sum(value >= observed_mean for value in null_values))
+            / (1 + len(null_values))
+        ) if null_values else None,
+    }
+
+    bootstrap_frame, bootstrap_summary = bootstrap_matching(
     bootstrap_frame, bootstrap_summary = bootstrap_matching(
         source,
         target,
@@ -265,6 +298,7 @@ def run(config_path: str) -> Path:
             },
         },
         "bootstrap": bootstrap_summary,
+        "permutation_null": permutation_summary,
         "encoder": encoder.metadata,
         "decoder": decoder.metadata,
         "config": config,
