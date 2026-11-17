@@ -22,6 +22,7 @@ from cra_hp.bootstrap import bootstrap_matching
 from cra_hp.data import load_wikitext_2_raw
 from cra_hp.extraction import extract_head_representations
 from cra_hp.matching import (
+    fixed_cardinality_hungarian,
     partial_hungarian,
     random_matching,
     same_index_matching,
@@ -113,8 +114,11 @@ def run(config_path: str) -> Path:
         device=device,
         revision=model_cfg["encoder"].get("revision", "main"),
     )
-    np.savez_compressed(run_dir / "encoder_representations.npz",
-                        representations=encoder.representations)
+    encoder_metadata = encoder.metadata
+    np.savez_compressed(
+        run_dir / "encoder_representations.npz",
+        representations=encoder.representations,
+    )
     del encoder.representations
     import gc
     gc.collect()
@@ -129,8 +133,11 @@ def run(config_path: str) -> Path:
         device=device,
         revision=model_cfg["decoder"].get("revision", "main"),
     )
-    np.savez_compressed(run_dir / "decoder_representations.npz",
-                        representations=decoder.representations)
+    decoder_metadata = decoder.metadata
+    np.savez_compressed(
+        run_dir / "decoder_representations.npz",
+        representations=decoder.representations,
+    )
 
     with np.load(run_dir / "encoder_representations.npz") as data:
         source = data["representations"]
@@ -154,21 +161,21 @@ def run(config_path: str) -> Path:
     threshold = float(matching_cfg["unmatched_threshold"])
     global_matches = partial_hungarian(similarity, threshold=threshold)
     encoder_meta = {
-        "num_heads_per_layer": int(encoder.metadata["num_heads_per_layer"]),
+        "num_heads_per_layer": int(encoder_metadata["num_heads_per_layer"]),
     }
     decoder_meta = {
-        "num_heads_per_layer": int(decoder.metadata["num_heads_per_layer"]),
+        "num_heads_per_layer": int(decoder_metadata["num_heads_per_layer"]),
     }
 
     all_match_rows: list[dict[str, Any]] = []
     all_match_rows.extend(_save_matches(
         run_dir / "matches_global_partial.csv", global_matches,
-        encoder.metadata, decoder.metadata, "global_partial_hungarian"
+        encoder_metadata, decoder_metadata, "global_partial_hungarian"
     ))
     same_index = same_index_matching(similarity, threshold=threshold)
     all_match_rows.extend(_save_matches(
         run_dir / "matches_same_index.csv", same_index,
-        encoder.metadata, decoder.metadata, "same_index"
+        encoder_metadata, decoder_metadata, "same_index"
     ))
     same_layer = same_layer_matching(
         similarity,
@@ -178,56 +185,115 @@ def run(config_path: str) -> Path:
     )
     all_match_rows.extend(_save_matches(
         run_dir / "matches_same_layer.csv", same_layer,
-        encoder.metadata, decoder.metadata, "same_layer_hungarian"
+        encoder_metadata, decoder_metadata, "same_layer_hungarian"
     ))
-    random_baseline = random_matching(
-        similarity, len(global_matches), seed=seed
-    )
+
+    matched_count = len(global_matches)
+    random_baseline = random_matching(similarity, matched_count, seed=seed)
     all_match_rows.extend(_save_matches(
         run_dir / "matches_random.csv", random_baseline,
-        encoder.metadata, decoder.metadata, "random_fixed_cardinality"
+        encoder_metadata, decoder_metadata, "random_fixed_cardinality_example"
     ))
     pd.DataFrame(all_match_rows).to_csv(run_dir / "all_matches.csv", index=False)
 
-    # Break paired-example correspondence to form an empirical null distribution.
+    # Compare the observed maximum-weight k-matching with maximum-weight
+    # k-matchings after breaking paired-example correspondence. The cardinality
+    # k is fixed from the observed partial assignment in every replicate.
     bootstrap_cfg = config["bootstrap"]
-    permutation_replicates = int(bootstrap_cfg.get("permutation_replicates", 50))
+    permutation_replicates = int(bootstrap_cfg.get("permutation_replicates", 100))
     permutation_rng = np.random.default_rng(seed + 1)
-    observed_mean = (
-        float(np.mean([item.score for item in global_matches])) if global_matches else 0.0
-    )
     permutation_rows = []
-    for replicate in range(permutation_replicates):
-        shuffled_indices = permutation_rng.permutation(source.shape[1])
-        null_scores = cka_similarity_matrix(source, target[:, shuffled_indices, :])
-        null_matches = partial_hungarian(null_scores, threshold=threshold)
-        null_mean = (
-            float(np.mean([item.score for item in null_matches])) if null_matches else 0.0
+    if matched_count:
+        observed_fixed = fixed_cardinality_hungarian(similarity, matched_count)
+        observed_fixed_mean = float(np.mean([item.score for item in observed_fixed]))
+        for replicate in range(permutation_replicates):
+            shuffled_indices = permutation_rng.permutation(source.shape[1])
+            null_scores = cka_similarity_matrix(source, target[:, shuffled_indices, :])
+            null_matches = fixed_cardinality_hungarian(null_scores, matched_count)
+            null_mean = float(np.mean([item.score for item in null_matches]))
+            permutation_rows.append({
+                "replicate": replicate,
+                "matched_count": matched_count,
+                "mean_max_weight_score": null_mean,
+            })
+        null_values = np.asarray(
+            [row["mean_max_weight_score"] for row in permutation_rows],
+            dtype=np.float64,
         )
-        permutation_rows.append({
-            "replicate": replicate,
-            "matched_count": len(null_matches),
-            "mean_matched_score": null_mean,
-        })
+        permutation_summary = {
+            "statistic": "mean score of maximum-weight fixed-cardinality assignment",
+            "matched_count": matched_count,
+            "replicates": permutation_replicates,
+            "observed_statistic": observed_fixed_mean,
+            "null_mean": float(np.mean(null_values)),
+            "null_std": float(np.std(null_values, ddof=1)) if len(null_values) > 1 else 0.0,
+            "null_95_percentile_interval": [
+                float(np.quantile(null_values, 0.025)),
+                float(np.quantile(null_values, 0.975)),
+            ],
+            "empirical_p_value": float(
+                (1 + np.sum(null_values >= observed_fixed_mean))
+                / (1 + len(null_values))
+            ),
+        }
+    else:
+        permutation_summary = {
+            "statistic": "not_estimable_no_observed_matches",
+            "matched_count": 0,
+            "replicates": 0,
+            "observed_statistic": None,
+            "null_mean": None,
+            "null_std": None,
+            "null_95_percentile_interval": None,
+            "empirical_p_value": None,
+        }
     pd.DataFrame(permutation_rows).to_csv(run_dir / "permutation_null.csv", index=False)
-    null_values = [row["mean_matched_score"] for row in permutation_rows]
-    permutation_summary = {
-        "replicates": permutation_replicates,
-        "observed_mean_matched_score": observed_mean,
-        "null_mean": float(np.mean(null_values)) if null_values else None,
-        "null_std": float(np.std(null_values, ddof=1)) if len(null_values) > 1 else None,
-        "empirical_p_value": (
-            (1 + sum(value >= observed_mean for value in null_values))
-            / (1 + len(null_values))
-        ) if null_values else None,
+
+    # Random assignment baseline: estimate a distribution, not a single lucky
+    # or unlucky random draw.
+    random_replicates = int(bootstrap_cfg.get("random_replicates", 500))
+    random_rng = np.random.default_rng(seed + 2)
+    random_rows = []
+    for replicate in range(random_replicates):
+        random_matches = random_matching(
+            similarity, matched_count, seed=int(random_rng.integers(0, 2**32 - 1))
+        )
+        random_mean = (
+            float(np.mean([item.score for item in random_matches]))
+            if random_matches else None
+        )
+        random_rows.append({
+            "replicate": replicate,
+            "matched_count": len(random_matches),
+            "mean_score": random_mean,
+        })
+    pd.DataFrame(random_rows).to_csv(run_dir / "random_baseline.csv", index=False)
+    random_values = np.asarray(
+        [row["mean_score"] for row in random_rows if row["mean_score"] is not None],
+        dtype=np.float64,
+    )
+    random_summary = {
+        "replicates": random_replicates,
+        "matched_count": matched_count,
+        "mean": float(np.mean(random_values)) if len(random_values) else None,
+        "std": float(np.std(random_values, ddof=1)) if len(random_values) > 1 else None,
+        "percentile_95_interval": [
+            float(np.quantile(random_values, 0.025)),
+            float(np.quantile(random_values, 0.975)),
+        ] if len(random_values) else None,
     }
 
+    # WikiText rows are sampled from API pages. Resample whole pages, not
+    # individual rows, to respect within-page dependence.
+    page_size = int(data_metadata["page_size"])
+    cluster_ids = np.asarray(sample_ids, dtype=np.int64) // page_size
     bootstrap_frame, bootstrap_summary = bootstrap_matching(
         source,
         target,
         replicates=int(bootstrap_cfg["pilot_replicates"]),
         threshold=threshold,
         seed=seed,
+        cluster_ids=cluster_ids,
     )
     bootstrap_frame.to_csv(run_dir / "bootstrap_stability.csv", index=False)
 
@@ -255,6 +321,7 @@ def run(config_path: str) -> Path:
         "pandas": pd.__version__,
         "device": device,
         "sample_count": len(texts),
+        "sampled_page_count": int(len(np.unique(cluster_ids))),
         "source_shape": list(source.shape),
         "target_shape": list(target.shape),
         "threshold": threshold,
@@ -271,18 +338,16 @@ def run(config_path: str) -> Path:
                 "matched_count": len(same_layer),
                 "mean_matched_score": mean_match_score(same_layer),
             },
-            "random_fixed_cardinality": {
-                "matched_count": len(random_baseline),
-                "mean_matched_score": mean_match_score(random_baseline),
-            },
         },
+        "random_baseline_distribution": random_summary,
         "bootstrap": bootstrap_summary,
         "permutation_null": permutation_summary,
-        "encoder": encoder.metadata,
-        "decoder": decoder.metadata,
+        "encoder": encoder_metadata,
+        "decoder": decoder_metadata,
         "config": config,
         "interpretation_warning": (
-            "Representation similarity is exploratory and does not establish causal "
+            "This remains a pretrained representation-only pilot. A significant "
+            "fixed-cardinality permutation result does not establish causal "
             "equivalence or pruning-utility transfer."
         ),
     }
