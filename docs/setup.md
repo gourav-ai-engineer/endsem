@@ -54,4 +54,4 @@ For NVIDIA systems, follow the official PyTorch installation selector so the CUD
 
 ## Current status
 
-At Stage 1, only repository-foundation smoke tests are defined. Model extraction and CKA commands do not exist yet; they will be implemented and tested in Stage 2. Do not interpret a passing foundation test as evidence that model experiments have run.
+The Stage 2 representation-only pilot entry point is available as `python -m cra_hp.experiments.representation_pilot --config configs/feasibility.yaml`. Install model extras with `pip install -e ".[models]"` first. The extraction code and similarity/matching unit tests are covered by CI, but the full BERT/GPT-2 run has not yet been executed. Do not interpret passing CI as evidence that real-model experiments have run.
