@@ -1,4 +1,3 @@
-from importlib import import_module
 from pathlib import Path
 
 
@@ -36,5 +35,5 @@ def test_feasibility_config_declares_pilot_dimensions() -> None:
 
 
 def test_experiment_modules_import_without_model_extras() -> None:
-    import_module("cra_hp.extraction")
-    import_module("cra_hp.experiments.representation_pilot")
+    __import__("cra_hp.extraction")
+    __import__("cra_hp.experiments.representation_pilot")
