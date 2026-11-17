@@ -97,15 +97,23 @@ def run(config_path: str) -> Path:
 
     try:
         import torch
+        import transformers
+        import datasets
+
         torch.manual_seed(seed)
+        torch.set_num_threads(int(repro.get("num_threads", 4)))
+        deterministic = bool(repro.get("deterministic_algorithms", False))
+        torch.use_deterministic_algorithms(deterministic, warn_only=True)
         if torch.cuda.is_available():
             torch.cuda.manual_seed_all(seed)
+            torch.backends.cudnn.deterministic = deterministic
+            torch.backends.cudnn.benchmark = not deterministic
     except ImportError as exc:
         raise RuntimeError("Install optional model dependencies first") from exc
 
     output_root = Path(config["outputs"]["root"])
     output_root.mkdir(parents=True, exist_ok=True)
-    run_id = datetime.now(timezone.utc).strftime("repr_%Y%m%dT%H%M%SZ")
+    run_id = datetime.now(timezone.utc).strftime("repr_%Y%m%dT%H%M%S_%fZ")
     run_dir = output_root / run_id
     run_dir.mkdir(parents=True, exist_ok=False)
 
@@ -273,6 +281,10 @@ def run(config_path: str) -> Path:
         "git_sha": _git_sha(),
         "python": platform.python_version(),
         "torch": torch.__version__,
+        "transformers": transformers.__version__,
+        "datasets": datasets.__version__,
+        "numpy": np.__version__,
+        "pandas": pd.__version__,
         "device": device,
         "sample_count": len(texts),
         "source_shape": list(source.shape),
