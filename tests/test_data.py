@@ -3,9 +3,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from typing_extensions import Self
-
 import pytest
+from typing_extensions import Self
 
 from cra_hp import data
 
