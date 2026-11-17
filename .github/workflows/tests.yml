@@ -2,9 +2,13 @@ name: research-foundation-tests
 
 on:
   push:
-    branches: [main, "research/**"]
+    branches: [main]
   pull_request:
     branches: [main]
+
+concurrency:
+  group: research-ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   tests:
