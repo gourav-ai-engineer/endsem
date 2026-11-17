@@ -1,0 +1,62 @@
+project:
+  name: cra_hp
+  protocol_version: "0.1"
+
+reproducibility:
+  seed: 20261117
+  confirmatory_seeds: [20261117, 20261118, 20261119, 20261120, 20261121]
+
+models:
+  encoder: bert-base-uncased
+  decoder: gpt2
+  revision_policy: pin_resolved_commit_hashes_in_run_manifest
+
+task:
+  dataset: glue
+  config: sst2
+  train_split: train
+  validation_split: validation
+  test_split: validation
+  max_length: 128
+  readout:
+    bert: cls
+    gpt2: last_non_padding_token
+  note: "Readout semantics differ; document and run sensitivity analysis."
+
+causal_intervention:
+  exact_ablation: true
+  gradient_proxy: true
+  gate_location: head_output_before_output_projection
+  calibration_sizes: [128, 512, 2048]
+  report_prediction_flips: true
+  report_margin_delta: true
+  report_loss_delta: true
+
+importance_transfer:
+  methods:
+    - random
+    - same_index
+    - unaligned_source
+    - cka_aligned
+    - causal_aligned
+    - target_gradient
+    - target_exact_ablation_oracle
+  pruning_budgets: [0.1, 0.2, 0.3, 0.4]
+  ranking_metrics: [spearman, kendall, top_k_overlap]
+  evaluate_group_interactions: true
+
+distribution_shift:
+  enabled: true
+  candidate_dataset: imdb
+  calibration_split_only: true
+  final_test_never_used_for_matching: true
+
+physical_pruning:
+  enabled_only_after_go_no_go: true
+  ratios: [0.1, 0.2, 0.3, 0.4]
+  recovery_finetuning_separate_condition: true
+  benchmark:
+    batch_sizes: [1, 8]
+    sequence_lengths: [64, 128]
+    warmup_steps: 20
+    repetitions: 100
