@@ -27,6 +27,8 @@
 - No BERT/GPT-2 model was loaded. No CKA, matching or causal experiments have been executed.
 - This stage is not a claim that the research hypothesis has been validated.
 
-## Next stage
+## Stage 2 implementation status
 
-Implement Stage 2 extraction and representation analysis as a separate, tested module. Preserve all run manifests and raw metrics. Use the predeclared protocol and do not tune matching thresholds on final test outcomes.
+The representation pilot code has been added: sequential BERT/GPT-2 extraction, vectorized CKA, partial Hungarian matching, same-index/same-layer/random baselines, paired-sample permutation null, bootstrap stability, heatmap and machine-readable outputs. Unit tests cover CKA, matching, configuration parsing and import smoke tests. The latest CI run must pass before this stage is considered code-validated.
+
+The full model run remains pending because no model execution environment has been attached to this GitHub session. Run the command in `docs/setup.md` on a machine with the model dependencies installed. Preserve all run manifests and raw metrics; do not tune matching thresholds on final test outcomes.
