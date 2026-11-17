@@ -46,7 +46,7 @@ Exit condition: all methods, primary metrics, data splits and go/no-go rules are
 
 - Compute the 144 × 144 linear CKA matrix.
 - Run partial global assignment with dummy unmatched nodes.
-- Baselines: same-index, same-layer constrained, repeated fixed-cardinality random assignments, and sample-permutation null.
+- Baselines: same-index and same-layer constrained assignments at the same fixed match count as the global assignment, repeated fixed-cardinality random assignments, and a sample-permutation null.
 - Save raw similarity matrix, assignment, unmatched heads and thresholds.
 - Plot heatmap with layer/head axes and matched-pair overlays.
 
