@@ -20,7 +20,6 @@ def _fetch_page(
     split: str,
     offset: int,
     *,
-    revision: str,
     timeout: int,
     retries: int,
 ) -> dict[str, Any]:
@@ -82,14 +81,13 @@ def load_wikitext_2_raw(
 
     seed = int(data_cfg["sampling_seed"])
     min_characters = int(data_cfg.get("min_characters", 1))
-    revision = str(data_cfg.get("revision", "main"))
     timeout = int(data_cfg.get("request_timeout", 30))
     retries = int(data_cfg.get("request_retries", 3))
 
     # The first response supplies the split size and is reused if page zero
     # is selected, avoiding an additional metadata request.
     first_page = _fetch_page(
-        split, 0, revision=revision, timeout=timeout, retries=retries
+        split, 0, timeout=timeout, retries=retries
     )
     total_rows = int(first_page["num_rows_total"])
     if total_rows < 1:
@@ -126,7 +124,7 @@ def load_wikitext_2_raw(
     for page_index in selected_pages:
         offset = page_index * WIKITEXT_2_PAGE_SIZE
         payload = first_page if page_index == 0 else _fetch_page(
-            split, offset, revision=revision, timeout=timeout, retries=retries
+            split, offset, timeout=timeout, retries=retries
         )
         add_page(offset, payload)
 
@@ -134,7 +132,7 @@ def load_wikitext_2_raw(
         page_index = remaining_pages.pop(0)
         offset = page_index * WIKITEXT_2_PAGE_SIZE
         payload = _fetch_page(
-            split, offset, revision=revision, timeout=timeout, retries=retries
+            split, offset, timeout=timeout, retries=retries
         )
         add_page(offset, payload)
 
