@@ -73,15 +73,15 @@ def fixed_cardinality_hungarian(
     """
     matrix = _validated_scores(scores)
     n_source, n_target = matrix.shape
+    if not isinstance(matched_count, (int, np.integer)):
+        raise TypeError("matched_count must be an integer")
+    k = int(matched_count)
     if allowed_mask is not None:
         allowed_mask = np.asarray(allowed_mask, dtype=bool)
         if allowed_mask.shape != matrix.shape:
             raise ValueError("allowed_mask must have the same shape as scores")
-        if int(allowed_mask.sum()) < matched_count:
+        if int(allowed_mask.sum()) < k:
             raise ValueError("allowed_mask has fewer than matched_count allowed edges")
-    if not isinstance(matched_count, (int, np.integer)):
-        raise TypeError("matched_count must be an integer")
-    k = int(matched_count)
     if k < 0 or k > min(n_source, n_target):
         raise ValueError("matched_count must be between 0 and min(matrix dimensions)")
     if k == 0:
