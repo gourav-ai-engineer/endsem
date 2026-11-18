@@ -203,6 +203,62 @@ def _train_model(
     return model, tokenizer, metadata
 
 
+def _reuse_checkpoint(
+    model_cfg: dict[str, Any],
+    train_cfg: dict[str, Any],
+    data: SST2Data,
+    checkpoint_dir: Path,
+    device: torch.device,
+) -> tuple[torch.nn.Module, Any, dict[str, Any]]:
+    """Continue a run from a previously completed, locally saved model checkpoint."""
+    tokenizer = AutoTokenizer.from_pretrained(checkpoint_dir)
+    model = AutoModelForSequenceClassification.from_pretrained(checkpoint_dir)
+    model.config.pad_token_id = tokenizer.pad_token_id
+    model.to(device)
+    selection = _evaluate(
+        model,
+        tokenizer,
+        data.selection,
+        batch_size=int(train_cfg["batch_size"]),
+        max_length=int(train_cfg["max_length"]),
+        device=device,
+    )
+    outer_eval = _evaluate(
+        model,
+        tokenizer,
+        data.heldout,
+        batch_size=int(train_cfg["batch_size"]),
+        max_length=int(train_cfg["max_length"]),
+        device=device,
+    )
+    metadata = {
+        "model_id": str(model_cfg["id"]),
+        "model_revision": str(model_cfg["revision"]),
+        "tokenizer_revision": str(model_cfg["tokenizer_revision"]),
+        "architecture": str(model_cfg["architecture"]),
+        "readout": str(model_cfg["readout"]),
+        "num_layers": int(
+            model.config.num_hidden_layers
+            if hasattr(model.config, "num_hidden_layers")
+            else model.config.n_layer
+        ),
+        "num_heads_per_layer": int(
+            model.config.num_attention_heads
+            if hasattr(model.config, "num_attention_heads")
+            else model.config.n_head
+        ),
+        "training_examples": len(data.fit),
+        "selection_examples": len(data.selection),
+        "best_epoch": None,
+        "training_history": [],
+        "selection_at_resume": selection,
+        "outer_validation": outer_eval,
+        "checkpoint_path": str(checkpoint_dir),
+        "checkpoint_reused": True,
+    }
+    return model, tokenizer, metadata
+
+
 def _install_gates(
     model: torch.nn.Module,
     architecture: str,
@@ -223,7 +279,7 @@ def _install_gates(
     else:
         raise ValueError(f"Unsupported architecture: {architecture}")
     head_dim = hidden // heads
-    if len(layers) * heads != gates.numel():
+    if gates.ndim not in (1, 2) or len(layers) * heads != gates.shape[-1]:
         raise ValueError("Gate count does not match the model's attention heads")
 
     handles = []
@@ -242,8 +298,10 @@ def _install_gates(
             value = args[0] if args else kwargs.get("input")
             if value is None:
                 raise RuntimeError("Attention output projection input was not provided")
-            split = value.reshape(*value.shape[:-1], current_gates.numel(), dim)
-            scaled = split * current_gates.to(value.device, value.dtype).view(1, 1, -1, 1)
+            split = value.reshape(*value.shape[:-1], current_gates.shape[-1], dim)
+            gate_values = current_gates.to(value.device, value.dtype)
+            gate_shape = (1, 1, -1, 1) if gate_values.ndim == 1 else (-1, 1, gate_values.shape[-1], 1)
+            scaled = split * gate_values.view(*gate_shape)
             replacement = scaled.reshape_as(value)
             if args:
                 return (replacement, *args[1:]), kwargs
@@ -270,6 +328,7 @@ def _exact_ablation(
     architecture: str,
     *,
     batch_size: int,
+    heads_per_forward: int,
     max_length: int,
     device: torch.device,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -281,52 +340,83 @@ def _exact_ablation(
     )
     total_heads = n_heads * n_layers
     model.eval()
-    gates = torch.ones(total_heads, device=device)
-    handles = _install_gates(model, architecture, gates)
     per_example: list[dict[str, Any]] = []
-    try:
-        with torch.inference_mode():
-            for batch in _batches(examples, batch_size):
-                inputs, labels = _encode_batch(tokenizer, batch, max_length, device)
+    with torch.inference_mode():
+        for batch in _batches(examples, batch_size):
+            inputs, labels = _encode_batch(tokenizer, batch, max_length, device)
+            gates = torch.ones(
+                len(batch) * heads_per_forward, total_heads, device=device
+            )
+            handles = _install_gates(model, architecture, gates)
+            try:
+                variant_count = heads_per_forward
+                expanded_inputs = {
+                    key: value.repeat((variant_count,) + (1,) * (value.ndim - 1))
+                    for key, value in inputs.items()
+                }
                 gates.fill_(1.0)
-                base_logits = model(**inputs).logits
+                expanded_base_logits = model(**expanded_inputs).logits
+                base_logits = expanded_base_logits[: len(batch)]
                 base_losses = F.cross_entropy(base_logits, labels, reduction="none")
                 base_margins = _margin(base_logits, labels)
                 base_predictions = base_logits.argmax(dim=-1)
-                for head_id in range(total_heads):
-                    gates.fill_(1.0)
-                    gates[head_id] = 0.0
-                    ablated_logits = model(**inputs).logits
-                    ablated_losses = F.cross_entropy(
-                        ablated_logits, labels, reduction="none"
+                for start_head in range(0, total_heads, heads_per_forward):
+                    actual_head_ids = list(
+                        range(start_head, min(start_head + heads_per_forward, total_heads))
                     )
-                    ablated_margins = _margin(ablated_logits, labels)
-                    ablated_predictions = ablated_logits.argmax(dim=-1)
-                    for row_index, example in enumerate(batch):
-                        per_example.append({
-                            "example_id": example.example_id,
-                            "label": example.label,
-                            "head_id": head_id,
-                            "layer": head_id // n_heads,
-                            "head_in_layer": head_id % n_heads,
-                            "base_loss": float(base_losses[row_index]),
-                            "ablated_loss": float(ablated_losses[row_index]),
-                            "loss_delta": float(
-                                ablated_losses[row_index] - base_losses[row_index]
-                            ),
-                            "base_true_class_margin": float(base_margins[row_index]),
-                            "ablated_true_class_margin": float(ablated_margins[row_index]),
-                            "true_class_margin_delta": float(
-                                base_margins[row_index] - ablated_margins[row_index]
-                            ),
-                            "prediction_flip": bool(
-                                ablated_predictions[row_index]
-                                != base_predictions[row_index]
-                            ),
-                        })
-    finally:
-        for handle in handles:
-            handle.remove()
+                    head_ids = actual_head_ids + [actual_head_ids[-1]] * (
+                        heads_per_forward - len(actual_head_ids)
+                    )
+                    variant_count = heads_per_forward
+                    expanded_inputs = {
+                        key: value.repeat((variant_count,) + (1,) * (value.ndim - 1))
+                        for key, value in inputs.items()
+                    }
+                    gates.fill_(1.0)
+                    expanded_labels = labels.repeat(variant_count)
+                    for variant_index, head_id in enumerate(head_ids):
+                        row_start = variant_index * len(batch)
+                        gates[row_start : row_start + len(batch), head_id] = 0.0
+                    expanded_ablated_logits = model(**expanded_inputs).logits
+                    ablated_logits = expanded_ablated_logits.reshape(
+                        variant_count, len(batch), -1
+                    )
+                    ablated_losses = F.cross_entropy(
+                        expanded_ablated_logits.reshape(-1, 2),
+                        expanded_labels,
+                        reduction="none",
+                    ).reshape(variant_count, len(batch))
+                    for variant_index, head_id in enumerate(actual_head_ids):
+                        one_head_logits = ablated_logits[variant_index]
+                        one_head_margins = _margin(one_head_logits, labels)
+                        one_head_predictions = one_head_logits.argmax(dim=-1)
+                        for row_index, example in enumerate(batch):
+                            per_example.append({
+                                "example_id": example.example_id,
+                                "label": example.label,
+                                "head_id": head_id,
+                                "layer": head_id // n_heads,
+                                "head_in_layer": head_id % n_heads,
+                                "base_loss": float(base_losses[row_index]),
+                                "ablated_loss": float(ablated_losses[variant_index, row_index]),
+                                "loss_delta": float(
+                                    ablated_losses[variant_index, row_index]
+                                    - base_losses[row_index]
+                                ),
+                                "base_true_class_margin": float(base_margins[row_index]),
+                                "ablated_true_class_margin": float(one_head_margins[row_index]),
+                                "true_class_margin_delta": float(
+                                    base_margins[row_index]
+                                    - one_head_margins[row_index]
+                                ),
+                                "prediction_flip": bool(
+                                    one_head_predictions[row_index]
+                                    != base_predictions[row_index]
+                                ),
+                            })
+            finally:
+                for handle in handles:
+                    handle.remove()
 
     frame = pd.DataFrame(per_example)
     summary = frame.groupby(["head_id", "layer", "head_in_layer"], as_index=False).agg(
@@ -536,7 +626,7 @@ def _causal_alignment(
     )
 
 
-def run(config_path: str) -> Path:
+def run(config_path: str, resume_encoder_checkpoint: str | None = None) -> Path:
     config = yaml.safe_load(Path(config_path).read_text(encoding="utf-8"))
     repro = config["reproducibility"]
     seed = int(repro["seed"])
@@ -559,16 +649,36 @@ def run(config_path: str) -> Path:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model_summaries: dict[str, Any] = {}
     calibration_effects: dict[str, pd.DataFrame] = {}
+    if resume_encoder_checkpoint is not None:
+        resume_path = Path(resume_encoder_checkpoint).resolve()
+        if not (resume_path / "model.safetensors").exists():
+            raise FileNotFoundError(f"No saved model.safetensors in {resume_path}")
+        prior_config = yaml.safe_load(
+            (resume_path.parents[1] / "config.yaml").read_text(encoding="utf-8")
+        )
+        if prior_config != config:
+            raise ValueError("Resume checkpoint config does not match this run config")
+    else:
+        resume_path = None
     for name in ("encoder", "decoder"):
         model_cfg = config["models"][name]
-        model, tokenizer, training = _train_model(
-            model_cfg,
-            config["models"],
-            data,
-            run_dir,
-            device,
-            seed + (0 if name == "encoder" else 1),
-        )
+        if name == "encoder" and resume_path is not None:
+            model, tokenizer, training = _reuse_checkpoint(
+                model_cfg,
+                config["models"],
+                data,
+                resume_path,
+                device,
+            )
+        else:
+            model, tokenizer, training = _train_model(
+                model_cfg,
+                config["models"],
+                data,
+                run_dir,
+                device,
+                seed + (0 if name == "encoder" else 1),
+            )
         calibration_batch = min(int(config["models"]["batch_size"]), 4)
         per_example, effects = _exact_ablation(
             model,
@@ -576,6 +686,9 @@ def run(config_path: str) -> Path:
             data.calibration,
             str(model_cfg["architecture"]),
             batch_size=calibration_batch,
+            heads_per_forward=int(
+                config["causal_intervention"]["exact_ablation_heads_per_forward"]
+            ),
             max_length=int(config["models"]["max_length"]),
             device=device,
         )
@@ -659,8 +772,12 @@ def run(config_path: str) -> Path:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default="configs/stage3_pilot.yaml")
+    parser.add_argument(
+        "--resume-encoder-checkpoint",
+        help="Reuse an encoder checkpoint from an interrupted run with the same config.",
+    )
     args = parser.parse_args()
-    output = run(args.config)
+    output = run(args.config, resume_encoder_checkpoint=args.resume_encoder_checkpoint)
     print(f"Stage 3 causal pilot artifacts written to: {output}")
 
 

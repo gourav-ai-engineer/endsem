@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import urllib.request
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -25,6 +27,59 @@ class SST2Data:
     calibration: list[TextExample]
     heldout: list[TextExample]
     metadata: dict[str, Any]
+
+
+def _pinned_parquet_rows(
+    data_cfg: dict[str, Any], split_name: str
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Read one checksum-verified SST-2 Parquet file from the pinned Hub revision."""
+    try:
+        from pyarrow._parquet import ParquetReader
+    except (ImportError, OSError) as exc:
+        raise RuntimeError(
+            "The optional `datasets` package is unavailable and the low-level "
+            "pyarrow Parquet reader could not be loaded. Repair the model environment."
+        ) from exc
+
+    revision = str(data_cfg["revision"])
+    dataset_id = str(data_cfg["id"])
+    parquet_name = f"{split_name}-00000-of-00001.parquet"
+    relative_path = f"sst2/{parquet_name}"
+    cache_dir = Path("data/raw")
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cache_path = cache_dir / f"glue-sst2-{revision}-{parquet_name}"
+    expected_sha256 = str(data_cfg["parquet_sha256"][split_name])
+    cache_hit = (
+        cache_path.exists()
+        and hashlib.sha256(cache_path.read_bytes()).hexdigest() == expected_sha256
+    )
+    if not cache_hit:
+        url = (
+            f"https://huggingface.co/datasets/{dataset_id}/resolve/"
+            f"{revision}/{relative_path}?download=true"
+        )
+        request = urllib.request.Request(url, headers={"User-Agent": "CRA-HP-research/0.3"})
+        with urllib.request.urlopen(request, timeout=120) as response:
+            payload = response.read()
+        if hashlib.sha256(payload).hexdigest() != expected_sha256:
+            raise RuntimeError(f"Checksum mismatch for pinned SST-2 file {relative_path}")
+        cache_path.write_bytes(payload)
+
+    reader = ParquetReader()
+    reader.open(str(cache_path))
+    table = reader.read_all()
+    rows = table.to_pylist()
+    reader.close()
+    return rows, {
+        "source": "pinned_hub_parquet",
+        "source_url": f"https://huggingface.co/datasets/{dataset_id}/resolve/{revision}/{relative_path}",
+        "revision": revision,
+        "split": split_name,
+        "relative_path": relative_path,
+        "sha256": expected_sha256,
+        "row_count": len(rows),
+        "cache_hit": cache_hit,
+    }
 
 
 def _digest(examples: list[TextExample]) -> str:
@@ -55,24 +110,32 @@ def _stratified_take(
 
 def load_sst2_pilot(data_cfg: dict[str, Any]) -> SST2Data:
     """Load a revision-pinned GLUE/SST-2 dataset and split train deterministically."""
+    loader_source = "datasets"
+    fallback_metadata: dict[str, Any] = {}
     try:
         from datasets import load_dataset
-    except (ImportError, OSError) as exc:
-        raise RuntimeError(
-            "SST-2 loading requires a working `datasets`/`pyarrow` installation. "
-            "Repair the optional model environment, then rerun the pilot."
-        ) from exc
-
+        dataset = load_dataset(
+            str(data_cfg["id"]),
+            str(data_cfg["config"]),
+            revision=str(data_cfg["revision"]),
+        )
+        train_raw = dataset[str(data_cfg["train_split"])]
+        heldout_raw = dataset[str(data_cfg["heldout_split"])]
+    except (ImportError, OSError):
+        loader_source = "pinned_hub_parquet"
+        train_raw, train_metadata = _pinned_parquet_rows(
+            data_cfg, str(data_cfg["train_split"])
+        )
+        heldout_raw, heldout_metadata = _pinned_parquet_rows(
+            data_cfg, str(data_cfg["heldout_split"])
+        )
+        fallback_metadata = {
+            "train": train_metadata,
+            "heldout": heldout_metadata,
+        }
     revision = str(data_cfg["revision"])
     dataset_id = str(data_cfg["id"])
     dataset_config = str(data_cfg["config"])
-    dataset = load_dataset(
-        dataset_id,
-        dataset_config,
-        revision=revision,
-    )
-    train_raw = dataset[str(data_cfg["train_split"])]
-    heldout_raw = dataset[str(data_cfg["heldout_split"])]
     text_column = str(data_cfg["text_column"])
     label_column = str(data_cfg["label_column"])
     id_column = str(data_cfg["row_id_column"])
@@ -140,6 +203,9 @@ def load_sst2_pilot(data_cfg: dict[str, Any]) -> SST2Data:
         "dataset_id": dataset_id,
         "config": dataset_config,
         "revision": revision,
+        "loader": loader_source,
+        "pinned_parquet_fallback": fallback_metadata,
+        "source_train_candidate_rows": len(train),
         "source_splits": {
             "fit_selection_calibration": str(data_cfg["train_split"]),
             "heldout": str(data_cfg["heldout_split"]),
