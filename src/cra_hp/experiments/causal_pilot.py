@@ -285,7 +285,11 @@ def _install_gates(
     handles = []
     for layer_index, projection in enumerate(projections):
         start = layer_index * heads
-        layer_gates = gates[start : start + heads]
+        layer_gates = (
+            gates[start : start + heads]
+            if gates.ndim == 1
+            else gates[:, start : start + heads]
+        )
 
         def apply_gate(
             _module: Any,
