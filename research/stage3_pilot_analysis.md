@@ -74,6 +74,31 @@ The empirical permutation p-value was 0.0693 (7 of 100 null scores at least as l
 
 The second seed therefore reproduces the *direction* of the descriptive baseline comparisons, but not the first seed's permutation significance or assignment set. It does not establish task-conditioned causal correspondence. Both runs still use a small calibration set and only 100 permutation replicates; the validation accuracies are outer-evaluation metrics and are not evidence about cross-model pruning transfer.
 
+**Correction to the earlier pair-overlap calculation:** the previous report version selected the wrong columns from the matches CSV when comparing seed 20261117 and seed 20261118. Using the actual `source_head` and `target_head` columns, those runs share zero global pairs (Jaccard 0.000), not 40 pairs (Jaccard 0.222). The raw match artifacts and all per-run CKA and permutation statistics were unaffected.
+
+## Third seed: 20261119
+
+**Run:** `stage3_bert-gpt2_sst2_20261119_ec8f59fe_20261118T094954_357817Z`
+
+| Measure | BERT | GPT-2 |
+|---|---:|---:|
+| Checkpoint-selection accuracy (512 examples) | 0.8926 | 0.8516 |
+| Outer SST-2 validation accuracy (872 examples) | 0.8819 | 0.8349 |
+| Mean exact loss change after one-head ablation | -0.00128 | +0.00059 |
+| Mean true-class margin decrease after ablation | +0.01651 | +0.01407 |
+| Mean prediction-flip rate across head/example pairs | 0.57% | 0.67% |
+| Pearson correlation: gradient proxy vs exact mean loss change across heads | 0.948 | 0.545 |
+
+| Causal-signature matching method | Mean CKA | Match count |
+|---|---:|---:|
+| Global partial matching | **0.2297** | 40 |
+| Same-layer, fixed cardinality | 0.1545 | 40 |
+| Same-index, fixed cardinality | 0.0770 | 40 |
+| Random fixed-cardinality assignments, 500 draws | 0.0257 ± 0.0053 SD | 40 |
+| Label-stratified example-permutation null, 100 draws | 0.1445 ± 0.0162 SD | 40 |
+
+The empirical permutation p-value was 0.0099 (minimum attainable with 100 draws). Global matching exceeded the same-layer score by 0.0752 CKA. Across the three runs, pairwise exact global-pair overlap is zero: each pair of seeds has Jaccard 0.000, and there are 95 distinct pairs in total. This is direct evidence that the selected head-to-head assignments are seed-sensitive at this pilot scale, even though the observed global score exceeded the tested baselines in each run.
+
 ## Next Stage 3 step
 
-Run the remaining predeclared seeds (`20261119`–`20261121`) with independent train/selection/calibration splits. Then report pair-frequency and score uncertainty across all five seeds, alongside seed-wise permutation results. Only after that should we compare source causal rankings with target exact-ablation utility on held-out examples. Do not proceed to physical pruning from these pilot runs alone.
+Run the remaining predeclared seeds (`20261120`–`20261121`) with independent train/selection/calibration splits. Then report pair-frequency and score uncertainty across all five seeds, alongside seed-wise permutation results. Only after that should we compare source causal rankings with target exact-ablation utility on held-out examples. Do not proceed to physical pruning from these pilot runs alone.
