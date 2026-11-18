@@ -2,7 +2,7 @@
 
 Research repository for studying whether task-conditioned causal correspondence between attention heads in bidirectional encoder Transformers and causal decoder Transformers can transfer pruning utility.
 
-**Status:** Stage 1 — research foundation in progress. No model experiments have been run yet. All numerical results must come from recorded experiment outputs; none are assumed.
+**Status:** Stage 2 corrected representation pilot completed; Stage 3 task-conditioned causal experiment is next. Numerical claims are recorded in run artifacts and must not be generalized beyond their measured scope.
 
 ## Research question
 
@@ -42,16 +42,16 @@ Heads that exhibit similar task-conditioned causal effects may provide a more us
 
 ## Quick start
 
-The representation-only pilot implementation is now present. Install model extras and run `python -m cra_hp.experiments.representation_pilot --config configs/feasibility.yaml`. The first full run downloads WikiText-2, BERT-base and GPT-2; it has **not yet been executed or validated on real model activations**. See [setup](docs/setup.md), [the research protocol](research/research_protocol.md) and [the feasibility configuration](configs/feasibility.yaml).
+The representation-only pilot implementation and corrected pilot results are present. Install model extras and run `python -m cra_hp.experiments.representation_pilot --config configs/feasibility.yaml` for a new run. See [setup](docs/setup.md), [the research protocol](research/research_protocol.md), [the feasibility configuration](configs/feasibility.yaml), and the [corrected Stage 2 analysis](research/stage2_corrected_analysis.md).
 
 ## Current status
 
 | Stage | Status |
 |---|---|
-| 1. Research foundation | Completed and merged to main; CI passed |
-| 2. Representation pilot | Implementation merged; full model run pending |
-| 3. Go/no-go | Not started |
-| 4. Causal correspondence | Not started |
+| 1. Research foundation | Completed and merged to main |
+| 2. Representation pilot | Corrected pilot completed; analysis recorded |
+| 3. Go/no-go | Passed for exploratory Stage 3 only; full mapping is unstable |
+| 4. Causal correspondence | Next; implementation and experiments not started |
 | 5. Importance transfer | Not started |
 | 6. Physical pruning | Not started |
 
