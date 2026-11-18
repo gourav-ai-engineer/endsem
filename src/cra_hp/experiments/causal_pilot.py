@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.metadata
 import json
 import platform
 import random
@@ -752,7 +753,7 @@ def run(config_path: str, resume_encoder_checkpoint: str | None = None) -> Path:
         "python": platform.python_version(),
         "torch": torch.__version__,
         "transformers": __import__("transformers").__version__,
-        "datasets": __import__("datasets").__version__,
+        "datasets": importlib.metadata.version("datasets"),
         "numpy": np.__version__,
         "pandas": pd.__version__,
         "device": str(device),
@@ -773,6 +774,162 @@ def run(config_path: str, resume_encoder_checkpoint: str | None = None) -> Path:
     return run_dir
 
 
+def finalize_existing_run(run_path: str) -> Path:
+    """Finalize metrics metadata for a run whose experiment artifacts are complete."""
+    run_dir = Path(run_path)
+    required = [
+        "config.yaml",
+        "dataset_manifest.json",
+        "encoder_calibration_effects.csv",
+        "encoder_head_effects.csv",
+        "encoder_gradient_proxy.csv",
+        "decoder_calibration_effects.csv",
+        "decoder_head_effects.csv",
+        "decoder_gradient_proxy.csv",
+        "causal_signature_cka.csv",
+        "causal_matches.csv",
+        "causal_permutation_null.csv",
+        "causal_random_baseline.csv",
+    ]
+    missing = [name for name in required if not (run_dir / name).exists()]
+    if missing:
+        raise FileNotFoundError(f"Cannot finalize incomplete run; missing: {missing}")
+    config = yaml.safe_load((run_dir / "config.yaml").read_text(encoding="utf-8"))
+    data = load_sst2_pilot(config["dataset"])
+    recorded_data = json.loads(
+        (run_dir / "dataset_manifest.json").read_text(encoding="utf-8")
+    )
+    if recorded_data.get("split_sha256") != data.metadata.get("split_sha256"):
+        raise ValueError("Cached SST-2 split hashes differ from the run manifest")
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model_summaries: dict[str, Any] = {}
+    for name in ("encoder", "decoder"):
+        model_cfg = config["models"][name]
+        architecture = str(model_cfg["architecture"])
+        checkpoint = run_dir / "checkpoints" / architecture
+        if not (checkpoint / "model.safetensors").exists():
+            raise FileNotFoundError(f"Missing trained checkpoint: {checkpoint}")
+        tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+        model = AutoModelForSequenceClassification.from_pretrained(checkpoint)
+        model.config.pad_token_id = tokenizer.pad_token_id
+        model.to(device)
+        selection = _evaluate(
+            model,
+            tokenizer,
+            data.selection,
+            batch_size=int(config["models"]["batch_size"]),
+            max_length=int(config["models"]["max_length"]),
+            device=device,
+        )
+        outer = _evaluate(
+            model,
+            tokenizer,
+            data.heldout,
+            batch_size=int(config["models"]["batch_size"]),
+            max_length=int(config["models"]["max_length"]),
+            device=device,
+        )
+        heads = pd.read_csv(run_dir / f"{name}_head_effects.csv")
+        model_summaries[name] = {
+            "model_id": str(model_cfg["id"]),
+            "model_revision": str(model_cfg["revision"]),
+            "tokenizer_revision": str(model_cfg["tokenizer_revision"]),
+            "architecture": architecture,
+            "readout": str(model_cfg["readout"]),
+            "training_examples": len(data.fit),
+            "selection_examples": len(data.selection),
+            "epochs_configured": int(config["models"]["epochs"]),
+            "training_history": "not preserved by the interrupted metadata write",
+            "selection_at_finalization": selection,
+            "outer_validation": outer,
+            "head_count_with_exact_ablation": len(heads),
+            "calibration_examples": int(heads["calibration_examples"].min()),
+            "gradient_proxy_heads": len(
+                pd.read_csv(run_dir / f"{name}_gradient_proxy.csv")
+            ),
+            "checkpoint_path": str(checkpoint),
+        }
+        del model
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+    match_frame = pd.read_csv(run_dir / "causal_matches.csv")
+    null_frame = pd.read_csv(run_dir / "causal_permutation_null.csv")
+    random_frame = pd.read_csv(run_dir / "causal_random_baseline.csv")
+    method_means = match_frame.groupby("method")["score"].mean().to_dict()
+    observed = method_means.get("global_fixed_k")
+    null_values = null_frame["mean_max_weight_score"].dropna().to_numpy()
+    random_values = random_frame["mean_score"].dropna().to_numpy()
+    alignment = {
+        "signature_features": ["loss_delta", "true_class_margin_delta"],
+        "statistic": "mean score of maximum-weight fixed-cardinality assignment",
+        "permutation_scheme": "shuffle paired example correspondence within sentiment-label strata",
+        "matched_count": int(
+            match_frame.loc[match_frame["method"] == "global_fixed_k"].shape[0]
+        ),
+        "global_partial_mean_cka": method_means.get("global_partial"),
+        "observed_global_mean_cka": observed,
+        "same_index_fixed_k_mean_cka": method_means.get("same_index_fixed_k"),
+        "same_layer_fixed_k_mean_cka": method_means.get("same_layer_fixed_k"),
+        "random_replicates": len(random_values),
+        "random_mean_cka": float(random_values.mean()) if len(random_values) else None,
+        "random_std_cka": float(random_values.std(ddof=1))
+        if len(random_values) > 1 else None,
+        "random_95_percentile_interval": [
+            float(np.quantile(random_values, 0.025)),
+            float(np.quantile(random_values, 0.975)),
+        ] if len(random_values) else None,
+        "permutation_replicates": len(null_values),
+        "permutation_null_mean": float(null_values.mean()) if len(null_values) else None,
+        "permutation_null_std": float(null_values.std(ddof=1))
+        if len(null_values) > 1 else None,
+        "permutation_null_95_percentile_interval": [
+            float(np.quantile(null_values, 0.025)),
+            float(np.quantile(null_values, 0.975)),
+        ] if len(null_values) else None,
+        "permutation_empirical_p_value": float(
+            (1 + np.sum(null_values >= observed)) / (1 + len(null_values))
+        ) if observed is not None and len(null_values) else None,
+    }
+    summary = {
+        "run_id": run_dir.name,
+        "created_at_utc": datetime.fromtimestamp(
+            run_dir.stat().st_ctime, tz=timezone.utc
+        ).isoformat(),
+        "finalized_at_utc": datetime.now(timezone.utc).isoformat(),
+        "experiment_code_git_sha": "81c5349e485eaf51b9e02b25ffbe8eaa5e6690ae",
+        "python": platform.python_version(),
+        "torch": torch.__version__,
+        "transformers": importlib.metadata.version("transformers"),
+        "datasets": importlib.metadata.version("datasets"),
+        "numpy": np.__version__,
+        "pandas": pd.__version__,
+        "device": str(device),
+        "cuda_version": torch.version.cuda,
+        "seed": int(config["reproducibility"]["seed"]),
+        "dataset": recorded_data,
+        "models": model_summaries,
+        "causal_alignment": alignment,
+        "postprocessing_note": (
+            "All training, exact-ablation, gradient, CKA, matching, and null artifacts "
+            "were written before the initial process failed while importing the datasets "
+            "module for version metadata. This summary was finalized from those saved "
+            "artifacts and saved checkpoints; training history was not persisted."
+        ),
+        "interpretation_warning": (
+            "One CPU pilot seed with a limited fit set does not establish reproducible "
+            "causal correspondence or pruning-utility transfer. The official validation "
+            "split is an outer evaluation set and was not used to form signatures."
+        ),
+    }
+    output_path = run_dir / "summary.json"
+    if output_path.exists():
+        raise FileExistsError(f"Refusing to overwrite existing summary: {output_path}")
+    output_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    return output_path
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default="configs/stage3_pilot.yaml")
@@ -780,9 +937,17 @@ def main() -> None:
         "--resume-encoder-checkpoint",
         help="Reuse an encoder checkpoint from an interrupted run with the same config.",
     )
+    parser.add_argument(
+        "--finalize-existing-run",
+        help="Complete summary metadata from already-written experiment artifacts.",
+    )
     args = parser.parse_args()
-    output = run(args.config, resume_encoder_checkpoint=args.resume_encoder_checkpoint)
-    print(f"Stage 3 causal pilot artifacts written to: {output}")
+    if args.finalize_existing_run:
+        output = finalize_existing_run(args.finalize_existing_run)
+        print(f"Stage 3 run summary finalized: {output}")
+    else:
+        output = run(args.config, resume_encoder_checkpoint=args.resume_encoder_checkpoint)
+        print(f"Stage 3 causal pilot artifacts written to: {output}")
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 
 Research repository for studying whether task-conditioned causal correspondence between attention heads in bidirectional encoder Transformers and causal decoder Transformers can transfer pruning utility.
 
-**Status:** Stage 2 corrected representation pilot completed; Stage 3 task-conditioned causal experiment is next. Numerical claims are recorded in run artifacts and must not be generalized beyond their measured scope.
+**Status:** First Stage 3 causal pilot completed on one seed. Multi-seed reproducibility and pruning-utility transfer remain untested.
 
 ## Research question
 
@@ -42,7 +42,7 @@ Heads that exhibit similar task-conditioned causal effects may provide a more us
 
 ## Quick start
 
-The representation-only pilot and corrected results are recorded. The Stage 3 SST-2 fine-tuning and head-ablation pilot is implemented; install model extras and run `python -m cra_hp.experiments.causal_pilot --config configs/stage3_pilot.yaml`. See [setup](docs/setup.md), [the research protocol](research/research_protocol.md), [the Stage 3 pilot configuration](configs/stage3_pilot.yaml), and the [corrected Stage 2 analysis](research/stage2_corrected_analysis.md).
+The Stage 2 analysis and first Stage 3 SST-2 causal pilot results are recorded. Install model extras and run `python -m cra_hp.experiments.causal_pilot --config configs/stage3_pilot.yaml` for a new seed. See [setup](docs/setup.md), [the research protocol](research/research_protocol.md), [the Stage 3 pilot configuration](configs/stage3_pilot.yaml), the [Stage 2 analysis](research/stage2_corrected_analysis.md), and the [Stage 3 analysis](research/stage3_pilot_analysis.md).
 
 ## Current status
 
@@ -51,7 +51,7 @@ The representation-only pilot and corrected results are recorded. The Stage 3 SS
 | 1. Research foundation | Completed and merged to main |
 | 2. Representation pilot | Corrected pilot completed; analysis recorded |
 | 3. Go/no-go | Passed for exploratory Stage 3 only; full mapping is unstable |
-| 4. Causal correspondence | Pilot implementation ready; experiment not run |
+| 4. Causal correspondence | One exploratory seed completed; multi-seed exit condition not met |
 | 5. Importance transfer | Not started |
 | 6. Physical pruning | Not started |
 
