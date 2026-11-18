@@ -71,15 +71,19 @@ This is a feasibility gate, not proof of causal transfer. If these conditions fa
 
 ## Stage 3 — Causal correspondence on SST-2
 
-- Use official SST-2 train/validation/test splits; record dataset revision and preprocessing.
-- Train/fine-tune BERT and GPT-2 under a documented common classification protocol.
-- The GPT-2 readout (e.g. last non-padding token) and BERT readout (e.g. CLS) are architecturally different; report this as a limitation and include a readout/pooling sensitivity study.
-- Match optimization budget, training examples, evaluation examples and selection criteria as closely as possible. Record any unavoidable differences.
-- Compute per-example exact head-ablation effects on validation/calibration examples; compute gradient proxies separately.
-- Compare causal signature similarity against representation-only matching.
-- Validate on held-out examples. Never use test data to form matches.
+- Pin dataset and model/tokenizer revisions. The pilot uses `nyu-mll/glue`, config `sst2`, revision `bcdcba79d07bc864c1c254ccfcedcce55bcc9a8c`, with BERT/GPT-2 model revisions recorded in `configs/stage3_pilot.yaml`.
+- The labeled SST-2 validation split is the untouched outer evaluation set. The GLUE test split has no public labels; do not use it for matching, model selection, or reported metrics.
+- Stratify the labeled train split into fit, checkpoint-selection, and causal-calibration subsets. Hash each realized split and record IDs in run manifests.
+- Fine-tune BERT and GPT-2 using a documented common classification protocol. Match training examples, epochs, batch size, selection criteria, and seed; record architecture-specific learning rates and readouts.
+- GPT-2 uses the last non-padding token and BERT uses CLS. These readouts differ; report the limitation and plan a readout sensitivity study.
+- Measure per-example exact single-head ablation effects on calibration examples at the head output immediately before the output projection. Report loss delta, true-class margin delta, and prediction flips. Compute gate-gradient proxies separately and label them as approximations.
+- Compare causal response signatures with representation-only matching and same-layer, same-index, random, and target-specific baselines. Form signatures on calibration examples only; use outer validation only for final evaluation.
 
-Exit condition: causal signatures are reproducible across seeds and exact interventions; otherwise report failure and do not claim causal correspondence.
+Exit condition: causal signatures are reproducible across seeds and exact interventions on calibration data, and retain their behavior on the untouched outer validation split. Otherwise report failure and do not claim causal correspondence.
+
+### Stage 3 pilot implementation status (2026-11-18)
+
+`configs/stage3_pilot.yaml`, `cra_hp.task_data`, and `cra_hp.experiments.causal_pilot` implement a pilot-sized first run: up to 2,048 fit examples, 512 checkpoint-selection examples, 128 calibration examples, two epochs, and all 872 labeled outer-validation examples. It writes per-example exact ablations, per-head summaries, gate-gradient proxies, split hashes, model checkpoints, and a run manifest. This is an exploratory pipeline run, not a confirmatory multi-seed result. No Stage 3 metrics have been produced yet.
 
 ## Stage 4 — Importance transfer
 

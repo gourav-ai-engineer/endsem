@@ -42,7 +42,7 @@ Heads that exhibit similar task-conditioned causal effects may provide a more us
 
 ## Quick start
 
-The representation-only pilot implementation and corrected pilot results are present. Install model extras and run `python -m cra_hp.experiments.representation_pilot --config configs/feasibility.yaml` for a new run. See [setup](docs/setup.md), [the research protocol](research/research_protocol.md), [the feasibility configuration](configs/feasibility.yaml), and the [corrected Stage 2 analysis](research/stage2_corrected_analysis.md).
+The representation-only pilot and corrected results are recorded. The Stage 3 SST-2 fine-tuning and head-ablation pilot is implemented; install model extras and run `python -m cra_hp.experiments.causal_pilot --config configs/stage3_pilot.yaml`. See [setup](docs/setup.md), [the research protocol](research/research_protocol.md), [the Stage 3 pilot configuration](configs/stage3_pilot.yaml), and the [corrected Stage 2 analysis](research/stage2_corrected_analysis.md).
 
 ## Current status
 
@@ -51,7 +51,7 @@ The representation-only pilot implementation and corrected pilot results are pre
 | 1. Research foundation | Completed and merged to main |
 | 2. Representation pilot | Corrected pilot completed; analysis recorded |
 | 3. Go/no-go | Passed for exploratory Stage 3 only; full mapping is unstable |
-| 4. Causal correspondence | Next; implementation and experiments not started |
+| 4. Causal correspondence | Pilot implementation ready; experiment not run |
 | 5. Importance transfer | Not started |
 | 6. Physical pruning | Not started |
 

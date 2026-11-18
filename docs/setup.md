@@ -1,6 +1,6 @@
 # Environment Setup
 
-The repository foundation is documentation/configuration-first. The model-experiment entry points will be added in Stage 2.
+The repository contains Stage 2 representation and Stage 3 SST-2 causal pilot entry points.
 
 ## Requirements
 
@@ -54,4 +54,6 @@ For NVIDIA systems, follow the official PyTorch installation selector so the CUD
 
 ## Current status
 
-The Stage 2 representation-only pilot entry point is available as `python -m cra_hp.experiments.representation_pilot --config configs/feasibility.yaml`. Install model extras with `pip install -e ".[models]"` first. The extraction code and similarity/matching unit tests are covered by CI, but the full BERT/GPT-2 run has not yet been executed. Do not interpret passing CI as evidence that real-model experiments have run.
+The Stage 2 representation-only pilot is available as `python -m cra_hp.experiments.representation_pilot --config configs/feasibility.yaml`. The Stage 3 SST-2 fine-tuning and causal intervention pilot is available as `python -m cra_hp.experiments.causal_pilot --config configs/stage3_pilot.yaml`. Install model extras first. Stage 3 downloads the pinned SST-2 dataset, BERT and GPT-2; trains sequentially; then performs exact head ablations and gate-gradient measurements. It is compute intensive, especially on CPU. Its model checkpoints are written under the run directory and should not be committed. A labeled official validation split is used as the untouched outer evaluation set because the GLUE SST-2 test split has no labels.
+
+The current Windows environment had a blocked `pyarrow` binary when the Stage 3 loader was checked, so the causal pilot has not been run here. Repair or recreate the optional model environment before running it. Do not infer experiment results from implementation status or CI.

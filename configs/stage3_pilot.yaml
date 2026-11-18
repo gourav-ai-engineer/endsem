@@ -1,0 +1,61 @@
+project:
+  name: cra_hp
+  stage: causal_pilot
+  protocol_version: "0.1"
+
+reproducibility:
+  seed: 20261117
+  deterministic_algorithms: false
+  num_threads: 4
+
+dataset:
+  id: nyu-mll/glue
+  config: sst2
+  revision: bcdcba79d07bc864c1c254ccfcedcce55bcc9a8c
+  train_split: train
+  heldout_split: validation
+  text_column: sentence
+  label_column: label
+  row_id_column: idx
+  # The public GLUE SST-2 test split has no labels. Use the labeled validation
+  # split once as the untouched outer evaluation set; never use it for tuning.
+  train_partition:
+    fractions: [0.8, 0.1, 0.1]
+    names: [fit, checkpoint_selection, causal_calibration]
+    seed: 20261117
+    max_fit_examples: 2048
+    max_selection_examples: 512
+    calibration_examples: 128
+
+models:
+  encoder:
+    id: bert-base-uncased
+    revision: 86b5e0934494bd15c9632b12f734a8a67f723594
+    tokenizer_revision: 86b5e0934494bd15c9632b12f734a8a67f723594
+    architecture: bert
+    readout: cls
+    learning_rate: 0.00002
+  decoder:
+    id: gpt2
+    revision: 607a30d783dfa663caf39e06633721c8d4cfcd7e
+    tokenizer_revision: 607a30d783dfa663caf39e06633721c8d4cfcd7e
+    architecture: gpt2
+    readout: last_non_padding_token
+    learning_rate: 0.00005
+  num_labels: 2
+  max_length: 128
+  batch_size: 8
+  epochs: 2
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+
+causal_intervention:
+  gate_location: head_output_before_output_projection
+  metrics: [loss_delta, true_class_margin_delta, prediction_flip]
+  gradient_proxy: true
+  permutation_replicates: 100
+  random_assignment_replicates: 500
+  unmatched_threshold: 0.15
+
+outputs:
+  root: results/03_causal_pilot
