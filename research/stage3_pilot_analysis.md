@@ -45,4 +45,4 @@ The evidence remains exploratory. The models were trained on 2,048 examples for 
 
 ## Next Stage 3 step
 
-Run at least two additional predeclared seeds with independent train/selection/calibration splits, then measure pair-frequency and score uncertainty across seeds. Only after that should we compare source causal rankings with target exact-ablation utility on held-out examples. Do not proceed to physical pruning from this first run alone.
+Repeat the same pilot under the remaining predeclared seeds (`20261118`–`20261121`) with independent train/selection/calibration splits, then measure pair-frequency and score uncertainty across seeds. Only after that should we compare source causal rankings with target exact-ablation utility on held-out examples. Do not proceed to physical pruning from this first run alone.

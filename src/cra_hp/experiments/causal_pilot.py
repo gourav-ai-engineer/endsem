@@ -631,8 +631,18 @@ def _causal_alignment(
     )
 
 
-def run(config_path: str, resume_encoder_checkpoint: str | None = None) -> Path:
-    config = yaml.safe_load(Path(config_path).read_text(encoding="utf-8"))
+def run(
+    config_path: str,
+    resume_encoder_checkpoint: str | None = None,
+    seed_override: int | None = None,
+) -> Path:
+    config_bytes = Path(config_path).read_bytes()
+    config = yaml.safe_load(config_bytes)
+    if seed_override is not None:
+        seed_override = int(seed_override)
+        config["reproducibility"]["seed"] = seed_override
+        config["dataset"]["train_partition"]["seed"] = seed_override
+        config_bytes = yaml.safe_dump(config, sort_keys=False).encode("utf-8")
     repro = config["reproducibility"]
     seed = int(repro["seed"])
     _seed_everything(
@@ -641,7 +651,6 @@ def run(config_path: str, resume_encoder_checkpoint: str | None = None) -> Path:
         int(repro.get("num_threads", 4)),
     )
     data = load_sst2_pilot(config["dataset"])
-    config_bytes = Path(config_path).read_bytes()
     config_hash = hashlib.sha256(config_bytes).hexdigest()[:8]
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S_%fZ")
     run_id = f"stage3_bert-gpt2_sst2_{seed}_{config_hash}_{timestamp}"
@@ -938,6 +947,11 @@ def main() -> None:
         help="Reuse an encoder checkpoint from an interrupted run with the same config.",
     )
     parser.add_argument(
+        "--seed",
+        type=int,
+        help="Override the predeclared run and train-partition seed together.",
+    )
+    parser.add_argument(
         "--finalize-existing-run",
         help="Complete summary metadata from already-written experiment artifacts.",
     )
@@ -946,7 +960,11 @@ def main() -> None:
         output = finalize_existing_run(args.finalize_existing_run)
         print(f"Stage 3 run summary finalized: {output}")
     else:
-        output = run(args.config, resume_encoder_checkpoint=args.resume_encoder_checkpoint)
+        output = run(
+            args.config,
+            resume_encoder_checkpoint=args.resume_encoder_checkpoint,
+            seed_override=args.seed,
+        )
         print(f"Stage 3 causal pilot artifacts written to: {output}")
 
 
