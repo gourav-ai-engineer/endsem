@@ -1,8 +1,8 @@
-# Stage 3 SST-2 causal pilot: first-run analysis
+# Stage 3 SST-2 causal pilot: cross-seed analysis
 
 **Run:** `stage3_bert-gpt2_sst2_20261117_17024513_20261118T063637_767760Z`  
 **Experiment code revision:** `81c5349e485eaf51b9e02b25ffbe8eaa5e6690ae`  
-**Status:** One exploratory seed completed. The Stage 3 multi-seed exit condition is not yet met.
+**Status:** Two exploratory seeds completed. The Stage 3 multi-seed exit condition is not yet met.
 
 ## Design and artifacts
 
@@ -41,8 +41,39 @@ None of the 34 global causal-signature pairs exactly matched a pair in the Stage
 
 This first run shows that a causal response signature can be computed for both fine-tuned models and that global matching in this run exceeds the tested random, same-index, same-layer, and label-stratified permutation baselines. The agreement between gradient proxies and exact mean loss changes is descriptive and encouraging for using the proxy in follow-up work.
 
-The evidence remains exploratory. The models were trained on 2,048 examples for one seed; the calibration set had 128 examples; the permutation test had only 100 replicates; and causal-match bootstrap or cross-seed stability has not been measured. BERT and GPT-2 also differ in their classification readouts. The pair mapping should not be presented as stable, and no pruning-utility transfer was tested.
+At the time of the first run, the evidence was exploratory: 2,048 training examples, 128 calibration examples, and 100 permutation replicates, with no cross-seed stability estimate. BERT and GPT-2 also differ in their classification readouts. The pair mapping should not be presented as stable, and no pruning-utility transfer was tested.
 
 ## Next Stage 3 step
 
-Repeat the same pilot under the remaining predeclared seeds (`20261118`–`20261121`) with independent train/selection/calibration splits, then measure pair-frequency and score uncertainty across seeds. Only after that should we compare source causal rankings with target exact-ablation utility on held-out examples. Do not proceed to physical pruning from this first run alone.
+## Second seed: 20261118
+
+**Run:** `stage3_bert-gpt2_sst2_20261118_77a4208b_20261118T070529_838582Z`
+
+**Code revision:** `78c5964f6df8767193be6add94511b3b5d6d5f33`
+
+This run completed without the metadata-finalization interruption seen in seed 20261117. It used independently seeded fit, selection, and calibration splits (2,048 / 512 / 128 examples) and the same pinned model and dataset revisions. Both checkpoints were selected from the configured two epochs; BERT selected epoch 2 and GPT-2 epoch 1.
+
+| Measure | BERT | GPT-2 |
+|---|---:|---:|
+| Checkpoint-selection accuracy (512 examples) | 0.9160 | 0.8418 |
+| Outer SST-2 validation accuracy (872 examples) | 0.8933 | 0.8406 |
+| Mean exact loss change after one-head ablation | +0.00268 | +0.00053 |
+| Mean true-class margin decrease after ablation | +0.01923 | +0.01172 |
+| Mean prediction-flip rate across head/example pairs | 1.39% | 0.87% |
+| Pearson correlation: gradient proxy vs exact mean loss change across heads | 0.864 | 0.814 |
+
+| Causal-signature matching method | Mean CKA | Match count |
+|---|---:|---:|
+| Global partial matching | **0.2270** | 21 |
+| Same-layer, fixed cardinality | 0.1651 | 21 |
+| Same-index, fixed cardinality | 0.1014 | 21 |
+| Random fixed-cardinality assignments, 500 draws | 0.0208 ± 0.0069 SD | 21 |
+| Label-stratified example-permutation null, 100 draws | 0.2007 ± 0.0186 SD | 21 |
+
+The empirical permutation p-value was 0.0693 (7 of 100 null scores at least as large as observed, with the +1 correction). Global matching exceeded the same-layer score by 0.0619 CKA. This is weaker permutation evidence than seed 20261117 (p = 0.0099), with fewer matched pairs (21 versus 34). Across the two seeds, 40 global pairs were shared among 180 distinct pairs (pair-set Jaccard 0.222). These differences point to substantial mapping variability; two seeds are not enough to estimate stable pair frequencies or score uncertainty.
+
+The second seed therefore reproduces the *direction* of the descriptive baseline comparisons, but not the first seed's permutation significance or assignment set. It does not establish task-conditioned causal correspondence. Both runs still use a small calibration set and only 100 permutation replicates; the validation accuracies are outer-evaluation metrics and are not evidence about cross-model pruning transfer.
+
+## Next Stage 3 step
+
+Run the remaining predeclared seeds (`20261119`–`20261121`) with independent train/selection/calibration splits. Then report pair-frequency and score uncertainty across all five seeds, alongside seed-wise permutation results. Only after that should we compare source causal rankings with target exact-ablation utility on held-out examples. Do not proceed to physical pruning from these pilot runs alone.

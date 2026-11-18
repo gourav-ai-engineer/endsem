@@ -83,7 +83,7 @@ Exit condition: causal signatures are reproducible across seeds and exact interv
 
 ### Stage 3 pilot implementation status (2026-11-18)
 
-`configs/stage3_pilot.yaml`, `cra_hp.task_data`, and `cra_hp.experiments.causal_pilot` implement a pilot-sized run: 2,048 fit examples, 512 checkpoint-selection examples, 128 calibration examples, two epochs, and all 872 labeled outer-validation examples. The first seed completed; results and limitations are recorded in `research/stage3_pilot_analysis.md` and the corresponding `results/03_causal_pilot/` run. Global causal-signature matching exceeded the tested baselines in this run, but only 34/144 pairs matched and none overlapped the Stage 2 representation assignment. The required multi-seed stability condition has not been met. Do not proceed to pruning-utility or physical-pruning claims from this run alone.
+`configs/stage3_pilot.yaml`, `cra_hp.task_data`, and `cra_hp.experiments.causal_pilot` implement a pilot-sized run: 2,048 fit examples, 512 checkpoint-selection examples, 128 calibration examples, two epochs, and all 872 labeled outer-validation examples. Two predeclared seeds have completed; results and limitations are recorded in `research/stage3_pilot_analysis.md` and the corresponding `results/03_causal_pilot/` runs. Global causal-signature matching exceeded the random, same-index, and same-layer baselines for both seeds, but match counts and permutation evidence differed (34 pairs and p=0.0099 for seed 20261117; 21 pairs and p=0.0693 for seed 20261118). Only 40 global pairs were shared across the runs (Jaccard 0.222). The required five-seed stability condition has not been met. Do not proceed to pruning-utility or physical-pruning claims from these runs alone.
 
 ## Stage 4 — Importance transfer
 
