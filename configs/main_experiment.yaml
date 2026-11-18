@@ -7,18 +7,31 @@ reproducibility:
   confirmatory_seeds: [20261117, 20261118, 20261119, 20261120, 20261121]
 
 models:
-  encoder: bert-base-uncased
-  decoder: gpt2
-  revision_policy: pin_resolved_commit_hashes_in_run_manifest
+  encoder:
+    id: bert-base-uncased
+    revision: 86b5e0934494bd15c9632b12f734a8a67f723594
+    tokenizer_revision: 86b5e0934494bd15c9632b12f734a8a67f723594
+  decoder:
+    id: gpt2
+    revision: 607a30d783dfa663caf39e06633721c8d4cfcd7e
+    tokenizer_revision: 607a30d783dfa663caf39e06633721c8d4cfcd7e
 
 task:
-  dataset: glue
+  dataset: nyu-mll/glue
   config: sst2
-  train_split: train
-  validation_split: train_holdout
-  train_holdout_fraction: 0.1
+  dataset_revision: bcdcba79d07bc864c1c254ccfcedcce55bcc9a8c
+  parquet_sha256:
+    train: 66a253e67968acfabcbe49dbe9da964b42ac1c851c40ab760e8c8942efdb3229
+    validation: a1371f3b3a7b0bcefa8388799a9359dc3ce76c349cc0079507a7991364fd2a9b
+  source_train_split: train
+  fit_fraction: 0.8
+  checkpoint_selection_fraction: 0.1
+  causal_calibration_fraction: 0.1
   train_holdout_seed: 20261117
   final_evaluation_split: validation
+  test_split: test
+  test_labels_available: false
+  final_evaluation_note: "Use labeled validation as the untouched outer evaluation split; never use the unlabeled test split for signatures or selection."
   max_length: 128
   readout:
     bert: cls

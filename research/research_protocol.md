@@ -46,16 +46,18 @@ Exit condition: all methods, primary metrics, data splits and go/no-go rules are
 
 - Compute the 144 × 144 linear CKA matrix.
 - Run partial global assignment with dummy unmatched nodes.
-- Baselines: same-index, same-layer constrained, random and sample-permutation null.
+- Baselines: same-index and same-layer constrained assignments at the same fixed match count as the global assignment, repeated fixed-cardinality random assignments, and a sample-permutation null.
 - Save raw similarity matrix, assignment, unmatched heads and thresholds.
 - Plot heatmap with layer/head axes and matched-pair overlays.
 
 ### Bootstrap
 
 - Debug: 5 replicates.
-- Pilot report: at least 50 paired-example bootstrap replicates.
-- Main report: target 200 if resources permit.
-- Report match frequency, assignment stability, Jaccard and uncertainty.
+- Pilot report: at least 100 page-cluster bootstrap replicates for WikiText-2; iid row bootstrap is diagnostic only when rows are clustered by source page.
+- Main report: target 200 cluster bootstrap replicates if resources permit.
+- Report match frequency, assignment stability, Jaccard, sampled cluster count and uncertainty.
+- For permutation testing, fix the match cardinality to the observed partial assignment and recompute the maximum-weight k-matching in every shuffled replicate. Never use a thresholded null matching whose empty result is silently converted to a score of zero.
+- Estimate the random baseline from at least 500 independent fixed-cardinality assignments; do not report one random draw as the baseline distribution.
 
 ### Representation-only go/no-go
 
@@ -69,15 +71,19 @@ This is a feasibility gate, not proof of causal transfer. If these conditions fa
 
 ## Stage 3 — Causal correspondence on SST-2
 
-- Use official SST-2 train/validation/test splits; record dataset revision and preprocessing.
-- Train/fine-tune BERT and GPT-2 under a documented common classification protocol.
-- The GPT-2 readout (e.g. last non-padding token) and BERT readout (e.g. CLS) are architecturally different; report this as a limitation and include a readout/pooling sensitivity study.
-- Match optimization budget, training examples, evaluation examples and selection criteria as closely as possible. Record any unavoidable differences.
-- Compute per-example exact head-ablation effects on validation/calibration examples; compute gradient proxies separately.
-- Compare causal signature similarity against representation-only matching.
-- Validate on held-out examples. Never use test data to form matches.
+- Pin dataset and model/tokenizer revisions. The pilot uses `nyu-mll/glue`, config `sst2`, revision `bcdcba79d07bc864c1c254ccfcedcce55bcc9a8c`, with BERT/GPT-2 model revisions recorded in `configs/stage3_pilot.yaml`.
+- The labeled SST-2 validation split is the untouched outer evaluation set. The GLUE test split has no public labels; do not use it for matching, model selection, or reported metrics.
+- Stratify the labeled train split into fit, checkpoint-selection, and causal-calibration subsets. Hash each realized split and record IDs in run manifests.
+- Fine-tune BERT and GPT-2 using a documented common classification protocol. Match training examples, epochs, batch size, selection criteria, and seed; record architecture-specific learning rates and readouts.
+- GPT-2 uses the last non-padding token and BERT uses CLS. These readouts differ; report the limitation and plan a readout sensitivity study.
+- Measure per-example exact single-head ablation effects on calibration examples at the head output immediately before the output projection. Report loss delta, true-class margin delta, and prediction flips. Compute gate-gradient proxies separately and label them as approximations.
+- Compare causal response signatures with representation-only matching and same-layer, same-index, random, and target-specific baselines. Form signatures on calibration examples only; use outer validation only for final evaluation.
 
-Exit condition: causal signatures are reproducible across seeds and exact interventions; otherwise report failure and do not claim causal correspondence.
+Exit condition: causal signatures are reproducible across seeds and exact interventions on calibration data, and retain their behavior on the untouched outer validation split. Otherwise report failure and do not claim causal correspondence.
+
+### Stage 3 pilot implementation status (2026-11-18)
+
+`configs/stage3_pilot.yaml`, `cra_hp.task_data`, and `cra_hp.experiments.causal_pilot` implement a pilot-sized run: 2,048 fit examples, 512 checkpoint-selection examples, 128 calibration examples, two epochs, and all 872 labeled outer-validation examples. Two predeclared seeds have completed; results and limitations are recorded in `research/stage3_pilot_analysis.md` and the corresponding `results/03_causal_pilot/` runs. Global causal-signature matching exceeded the random, same-index, and same-layer baselines for both seeds, but match counts and permutation evidence differed (34 pairs and p=0.0099 for seed 20261117; 21 pairs and p=0.0693 for seed 20261118). Only 40 global pairs were shared across the runs (Jaccard 0.222). The required five-seed stability condition has not been met. Do not proceed to pruning-utility or physical-pruning claims from these runs alone.
 
 ## Stage 4 — Importance transfer
 
@@ -129,3 +135,14 @@ Measure:
 ## Run naming
 
 Use `<stage>_<modelpair>_<dataset>_<seed>_<short-config-hash>`. Store a JSON manifest alongside every output. Never overwrite an existing run directory.
+
+
+## Stage 2 statistical correction (2026-11-17)
+
+The initial pilot's permutation statistic was invalid: it used thresholded partial matching and replaced an empty null assignment with a mean score of zero. This produced a degenerate null distribution and an uninformative empirical p-value. The corrected implementation fixes the match cardinality at the observed partial-match count and computes a maximum-weight assignment for both observed and permuted similarity matrices. The same statistic and cardinality are used in every replicate.
+
+The initial random baseline contained one random assignment. The corrected pilot estimates its score distribution from 500 independent fixed-cardinality assignments.
+
+The initial bootstrap resampled individual rows even though WikiText examples were sampled from a limited set of API pages. The corrected pilot resamples page clusters (page index = row index // API page size). Report the number of sampled pages; the current 256-row/12-page sample is still a feasibility sample and not a representative corpus-wide sample.
+
+These corrections improve statistical validity but do not upgrade representation similarity into evidence of causal correspondence or pruning-utility transfer.
