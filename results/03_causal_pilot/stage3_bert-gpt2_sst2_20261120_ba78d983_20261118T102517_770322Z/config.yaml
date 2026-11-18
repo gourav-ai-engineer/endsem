@@ -1,0 +1,67 @@
+project:
+  name: cra_hp
+  stage: causal_pilot
+  protocol_version: '0.1'
+reproducibility:
+  seed: 20261120
+  deterministic_algorithms: false
+  num_threads: 4
+dataset:
+  id: nyu-mll/glue
+  config: sst2
+  revision: bcdcba79d07bc864c1c254ccfcedcce55bcc9a8c
+  parquet_sha256:
+    train: 66a253e67968acfabcbe49dbe9da964b42ac1c851c40ab760e8c8942efdb3229
+    validation: a1371f3b3a7b0bcefa8388799a9359dc3ce76c349cc0079507a7991364fd2a9b
+  train_split: train
+  heldout_split: validation
+  text_column: sentence
+  label_column: label
+  row_id_column: idx
+  train_partition:
+    fractions:
+    - 0.7
+    - 0.2
+    - 0.1
+    names:
+    - fit
+    - checkpoint_selection
+    - causal_calibration
+    seed: 20261120
+    max_fit_examples: 2048
+    max_selection_examples: 512
+    calibration_examples: 128
+models:
+  encoder:
+    id: bert-base-uncased
+    revision: 86b5e0934494bd15c9632b12f734a8a67f723594
+    tokenizer_revision: 86b5e0934494bd15c9632b12f734a8a67f723594
+    architecture: bert
+    readout: cls
+    learning_rate: 2.0e-05
+  decoder:
+    id: gpt2
+    revision: 607a30d783dfa663caf39e06633721c8d4cfcd7e
+    tokenizer_revision: 607a30d783dfa663caf39e06633721c8d4cfcd7e
+    architecture: gpt2
+    readout: last_non_padding_token
+    learning_rate: 5.0e-05
+  num_labels: 2
+  max_length: 128
+  batch_size: 8
+  epochs: 2
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+causal_intervention:
+  gate_location: head_output_before_output_projection
+  metrics:
+  - loss_delta
+  - true_class_margin_delta
+  - prediction_flip
+  gradient_proxy: true
+  permutation_replicates: 100
+  random_assignment_replicates: 500
+  unmatched_threshold: 0.15
+  exact_ablation_heads_per_forward: 4
+outputs:
+  root: results/03_causal_pilot

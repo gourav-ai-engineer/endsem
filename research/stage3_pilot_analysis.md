@@ -101,4 +101,29 @@ The empirical permutation p-value was 0.0099 (minimum attainable with 100 draws)
 
 ## Next Stage 3 step
 
-Run the remaining predeclared seeds (`20261120`–`20261121`) with independent train/selection/calibration splits. Then report pair-frequency and score uncertainty across all five seeds, alongside seed-wise permutation results. Only after that should we compare source causal rankings with target exact-ablation utility on held-out examples. Do not proceed to physical pruning from these pilot runs alone.
+## Fourth seed: 20261120
+
+**Run:** `stage3_bert-gpt2_sst2_20261120_ba78d983_20261118T102517_770322Z`
+
+| Measure | BERT | GPT-2 |
+|---|---:|---:|
+| Checkpoint-selection accuracy (512 examples) | 0.8867 | 0.8281 |
+| Outer SST-2 validation accuracy (872 examples) | 0.8842 | 0.8452 |
+| Mean exact loss change after one-head ablation | -0.00375 | +0.00012 |
+| Mean true-class margin decrease after ablation | +0.00999 | +0.02331 |
+| Mean prediction-flip rate across head/example pairs | 0.12% | 0.76% |
+| Pearson correlation: gradient proxy vs exact mean loss change across heads | 0.919 | 0.883 |
+
+| Causal-signature matching method | Mean CKA | Match count |
+|---|---:|---:|
+| Global partial matching | **0.2217** | 16 |
+| Same-layer, fixed cardinality | 0.1790 | 16 |
+| Same-index, fixed cardinality | 0.0827 | 16 |
+| Random fixed-cardinality assignments, 500 draws | 0.0170 ± 0.0070 SD | 16 |
+| Label-stratified example-permutation null, 100 draws | 0.1940 ± 0.0291 SD | 16 |
+
+The empirical permutation p-value was 0.1386. Global matching exceeded the same-layer score by 0.0427 CKA, but only 16 pairs were selected. Across all four seeds, no exact global source-target head pair is shared between any two seeds; there are 111 distinct pairs in total. The changing match count and absent pair recurrence show that the head correspondence itself remains unstable, even though global scores exceed structural and random baselines in each run.
+
+## Next Stage 3 step
+
+Run the final predeclared seed (`20261121`) with an independent train/selection/calibration split. Then report pair-frequency and score uncertainty across all five seeds, alongside seed-wise permutation results. Only after that should we compare source causal rankings with target exact-ablation utility on held-out examples. Do not proceed to physical pruning from these pilot runs alone.
