@@ -56,7 +56,7 @@ The candidate gap is not attention-head similarity, head pruning, transferabilit
 ## Verification status and required closure
 
 - Bibliographic records and abstracts have been checked for the key 2026 works; the HIES full paper and CAHP full paper were previously inspected.
-- CAP's arXiv full text and abstract were checked on 2026-11-19; it performs within-model causal head scoring and weight pruning, so the remaining distinction here is cross-architecture transfer rather than causal scoring itself.
+- CAP's arXiv v2 full text was checked on 2026-11-19; it scores masked attention heads on 128–256 reasoning examples per task, aggregates over 3 or 5 disjoint subsets, then uses the scores to guide weight-level pruning within each model. It establishes that causal head scoring itself is prior art; the candidate distinction is cross-architecture transfer of those scores/matches, not causal scoring or pruning generally.
 - Mishra's arXiv full text was inspected on 2026-11-19. It uses DeepSeek-R1-Distill-Qwen and Qwen2.5 models on GSM8K, with five calibration seeds at 1.5B and three at 7B; its main granularity result concerns MLP neurons, and it explicitly distinguishes these from measurable head-level effects. It uses hierarchical bootstraps over seeds and test items. These design choices are useful for our confirmatory analysis, but its task and model setting differ.
 - The IEICE full text has not yet been fully extracted for methods, datasets, limitations and result tables. Treat its row as abstract/record verified only.
 - TAHA is a close 2026 precedent and its full methods/results must be read before finalizing the novelty statement.

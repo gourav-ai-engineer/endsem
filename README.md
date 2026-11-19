@@ -2,7 +2,7 @@
 
 Research repository for studying whether task-conditioned causal correspondence between attention heads in bidirectional encoder Transformers and causal decoder Transformers can transfer pruning utility.
 
-**Status:** Five Stage 3 seeds completed; exact head-pair recurrence failed. Four Stage 4 held-out seeds are complete; no useful causal-ranking transfer is established.
+**Status:** Five Stage 3 seeds completed; exact head-pair recurrence failed. Across five Stage 4 seeds, causal-aligned utility correlation averaged -0.238 (exploratory hierarchical 95% interval [-0.319, -0.051]); useful transfer was not established.
 
 ## Research question
 
@@ -42,7 +42,7 @@ Heads that exhibit similar task-conditioned causal effects may provide a more us
 
 ## Quick start
 
-The Stage 2 analysis, all five predeclared Stage 3 SST-2 causal pilot seeds, and four Stage 4 held-out transfer runs are recorded. Stage 3 pair stability failed; Stage 4 causal-aligned utility correlations are negative in four seed point estimates and do not establish useful transfer. See [setup](docs/setup.md), [the research protocol](research/research_protocol.md), [the Stage 3 pilot configuration](configs/stage3_pilot.yaml), the [Stage 2 analysis](research/stage2_corrected_analysis.md), the [Stage 3 analysis](research/stage3_pilot_analysis.md), and the [Stage 4 analysis](research/stage4_importance_transfer_pilot.md).
+The Stage 2 analysis, all five predeclared Stage 3 SST-2 causal pilot seeds, and all five Stage 4 held-out transfer pilot runs are recorded. Stage 3 pair stability failed; Stage 4 causal-aligned utility correlations were negative across all five seeds and did not establish useful transfer. See [setup](docs/setup.md), [the research protocol](research/research_protocol.md), [the Stage 3 pilot configuration](configs/stage3_pilot.yaml), the [Stage 2 analysis](research/stage2_corrected_analysis.md), the [Stage 3 analysis](research/stage3_pilot_analysis.md), and the [Stage 4 analysis](research/stage4_importance_transfer_pilot.md).
 
 ## Current status
 
@@ -52,8 +52,8 @@ The Stage 2 analysis, all five predeclared Stage 3 SST-2 causal pilot seeds, and
 | 2. Representation pilot | Corrected pilot completed; analysis recorded |
 | 3. Go/no-go | Passed for exploratory Stage 3 only; full mapping is unstable |
 | 4. Causal correspondence | Five seeds completed; reproducible pair mapping not established |
-| 5. Importance transfer | Four held-out seeds complete; one remains; no benefit established |
-| 6. Physical pruning | Not started |
+| 5. Importance transfer | Five 128-example held-out seeds complete; cross-seed pilot does not support transfer; larger confirmatory study remains |
+| 6. Physical pruning | Deferred because transfer go/no-go failed |
 
 ## Research integrity
 

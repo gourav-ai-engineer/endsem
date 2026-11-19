@@ -1,0 +1,6 @@
+method,completed_seeds,mean_seed_spearman_rho,seed_sd,negative_seed_point_estimates,hierarchical_bootstrap_95_low,hierarchical_bootstrap_95_high,bootstrap_replicates,bootstrap_seed,bootstrap_unit
+causal_aligned,5,-0.23794644691594352,0.07648609705079643,5,-0.3187060318198426,-0.05068456615120893,2000,20261125,resample model seeds and stratified held-out examples; macro-average per-seed Spearman rho
+causal_same_layer,5,-0.14066548011280094,0.2564813023793413,3,-0.32950272361909194,0.08756569900687529,2000,20261125,resample model seeds and stratified held-out examples; macro-average per-seed Spearman rho
+representation_cka,5,0.011415345218162117,0.08645250734088455,2,-0.05895047440822087,0.09383230326012015,2000,20261125,resample model seeds and stratified held-out examples; macro-average per-seed Spearman rho
+same_index,5,0.06517482517482519,0.08602357186391255,1,-0.04021752672614742,0.12973137207619964,2000,20261125,resample model seeds and stratified held-out examples; macro-average per-seed Spearman rho
+target_gradient,5,0.36073466763121936,0.23690119707640064,0,0.08889307531548912,0.5039782372799612,2000,20261125,resample model seeds and stratified held-out examples; macro-average per-seed Spearman rho

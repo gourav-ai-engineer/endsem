@@ -1,0 +1,17 @@
+{
+  "completed_run_ids": [
+    "transfer_seed20261117_sst2_20261119T114913_943448Z",
+    "transfer_seed20261118_sst2_20261119T114142_086620Z",
+    "transfer_seed20261119_sst2_20261119T113123_685828Z",
+    "transfer_seed20261120_sst2_20261119T080117_537534Z",
+    "transfer_seed20261121_sst2_20261119T075016_873545Z"
+  ],
+  "heldout_examples_per_run": 128,
+  "label_counts": {
+    "0": 63,
+    "1": 65
+  },
+  "bootstrap_replicates_requested": 2000,
+  "bootstrap_seed": 20261125,
+  "interval_interpretation": "Exploratory hierarchical percentile interval for the macro-average of per-seed rank correlations; resamples both model seeds and held-out examples."
+}

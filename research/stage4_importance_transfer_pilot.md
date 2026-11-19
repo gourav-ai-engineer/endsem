@@ -3,7 +3,7 @@
 **Run:** `transfer_seed20261121_sst2_20261119T075016_873545Z`  
 **Analysis code revision:** `7509900e6ff27513933c92480f2f3788e7724b6f`  
 **Source/target models:** BERT-base-uncased → GPT-2  
-**Status:** Four low-power held-out diagnostics completed; useful transfer was not established. One predeclared seed run remains.
+**Status:** All five predeclared low-power held-out diagnostics completed; useful transfer was not established. The next work is confirmatory analysis at higher evaluation power, not physical pruning.
 
 ## Design
 
@@ -87,7 +87,7 @@ The no-ablation group had loss 0.2974, accuracy 0.8906, and positive F1 0.8889. 
 **Run:** `transfer_seed20261118_sst2_20261119T114142_086620Z`  
 **Analysis code revision:** `28125c54a4d65e9aba50c672a711129dfce3dc08`
 
-Causal-aligned coverage was 21/144 (14.6%); Spearman ρ was **-0.269** (95% interval [-0.385, -0.116]). Same-layer constrained ranking was +0.170 ([-0.045, +0.366]); representation CKA +0.082 ([-0.011, +0.162]); same-index +0.054 ([-0.037, +0.151]); target-gradient +0.366 ([+0.066, +0.482]). Random mappings had mean ρ -0.012 (SD 0.241; empirical interval [-0.457, +0.404]). This is the fourth negative causal-aligned point estimate, and the second seed with a bootstrap interval fully below zero.
+Causal-aligned coverage was 21/144 (14.6%); Spearman ρ was **-0.269** (95% interval [-0.385, -0.116]). Same-layer constrained ranking was +0.170 ([-0.045, +0.366]); representation CKA +0.082 ([-0.011, +0.162]); same-index +0.054 ([-0.037, +0.151]); target-gradient +0.366 ([+0.066, +0.482]). Random mappings had mean ρ -0.012 (SD 0.241; empirical interval [-0.457, +0.404]). This is the fourth negative causal-aligned point estimate, and the third seed with a bootstrap interval fully below zero.
 
 The no-ablation group had loss 0.2569, accuracy 0.9063, and positive F1 0.9104. The causal-aligned group had loss 0.2612, accuracy 0.8984, and F1 0.8976; the same-layer group had loss 0.2877, accuracy 0.8906, and F1 0.8939. Random groups averaged loss 0.2802 ± 0.0277, accuracy 0.8828 ± 0.0183, and F1 0.8850 ± 0.0214. The target exact-ablation oracle group had loss 0.4468, accuracy 0.7969, and F1 0.7547, again failing to translate individual scores into a reliable group choice.
 
@@ -102,12 +102,55 @@ The no-ablation group had loss 0.2569, accuracy 0.9063, and positive F1 0.9104. 
 | Random target sets, 20 draws (mean ± SD) | 0.2802 ± 0.0277 | 0.8828 ± 0.0183 | 0.8850 ± 0.0214 |
 | Target exact-ablation oracle† | 0.4468 | 0.7969 | 0.7547 |
 
+### Seed 20261117
+
+**Run:** `transfer_seed20261117_sst2_20261119T114913_943448Z`  
+**Analysis code revision:** `2a2ec15d232f66b77c80940e5bdbe0c427ce84a6`
+
+Causal-aligned coverage was 34/144 (23.6%); Spearman ρ was **-0.224** (95% interval [-0.300, -0.003]). Same-layer constrained ranking was +0.010 ([-0.090, +0.142]); representation CKA +0.071 ([-0.055, +0.146]); same-index +0.178 ([+0.026, +0.223]); target-gradient +0.622 ([+0.420, +0.646]). Random mappings averaged ρ +0.001 (SD 0.173; empirical interval [-0.327, +0.343]). This is the fifth negative causal-aligned point estimate and the fourth interval fully below zero.
+
+The no-ablation group had loss 0.3464, accuracy 0.8438, and positive F1 0.8571. Causal-aligned removal raised loss to 0.4233 and reduced accuracy to 0.7500; same-layer removal had loss 0.4014 and unchanged accuracy 0.8438. Random groups averaged loss 0.3824 ± 0.0605, accuracy 0.8313 ± 0.0444, and F1 0.8529 ± 0.0289. Target-gradient removal had loss 0.2861, accuracy 0.8906, and F1 0.8923. The same-sample target exact-ablation oracle had loss 0.2636, accuracy 0.8906, and F1 0.8833.
+
+| Seed 20261117 grouped selection | Mean loss | Accuracy | Positive F1 |
+|---|---:|---:|---:|
+| No ablation | 0.3464 | 0.8438 | 0.8571 |
+| Causal-aligned source ranking | 0.4233 | 0.7500 | 0.7949 |
+| Same-layer constrained source ranking | 0.4014 | 0.8438 | 0.8571 |
+| Representation-CKA source ranking | 0.4375 | 0.8281 | 0.8493 |
+| Same-index source ranking | 0.4014 | 0.8281 | 0.8493 |
+| Target-gradient ranking | 0.2861 | 0.8906 | 0.8923 |
+| Random target sets, 20 draws (mean ± SD) | 0.3824 ± 0.0605 | 0.8313 ± 0.0444 | 0.8529 ± 0.0289 |
+| Target exact-ablation oracle† | 0.2636 | 0.8906 | 0.8833 |
+
+## Cross-seed ranking summary
+
+The five source seeds all had negative causal-aligned Spearman point estimates. A separate 2,000-replicate hierarchical bootstrap (seed `20261125`) resampled model seeds and stratified held-out examples, then macro-averaged the per-seed Spearman correlations. This is the appropriate uncertainty level for the multi-seed pilot, but remains exploratory with only five seeds and 128 held-out examples per model.
+
+| Ranking/mapping | Mean per-seed ρ | Seed SD | Negative seed estimates | Hierarchical bootstrap 95% interval |
+|---|---:|---:|---:|---:|
+| Causal-aligned source ranking | **-0.238** | 0.076 | 5/5 | **[-0.319, -0.051]** |
+| Same-layer constrained mapping | -0.141 | 0.256 | 3/5 | [-0.330, +0.088] |
+| Representation CKA | +0.011 | 0.086 | 2/5 | [-0.059, +0.094] |
+| Same-index mapping | +0.065 | 0.086 | 1/5 | [-0.040, +0.130] |
+| Target-gradient proxy | +0.361 | 0.237 | 0/5 | [+0.089, +0.504] |
+
+The sign is consistent for the causal-aligned ranking in this pilot, and its hierarchical interval excludes zero. This is a potentially useful negative result: the current causal correspondence procedure fails to rank GPT-2 head-removal utility in the expected direction, while target-gradient estimates transfer positively. It is not a universal claim because the experiment uses one encoder-decoder pair, one task, one held-out subset, only five model seeds, and rankings from the same small calibration budget. The bootstrap interval does not account for model families, tasks, or hyperparameter selection beyond those five seeds.
+
+The same 2,000-replicate paired hierarchical bootstrap compared each fixed 14-head group with the intact model, resampling the five model seeds and stratified examples. Causal-aligned removal raised mean loss by +0.0186 (95% interval [-0.0164, +0.0604]) and changed accuracy by -3.13 percentage points ([-7.66, 0.00]). Twenty random groups averaged a +0.0325 loss change ([+0.0077, +0.0567]) and -2.18 accuracy points ([-4.40, +0.03]). These intervals are exploratory. Causal groups did not reliably improve on the intact model; the random average was also damaging on loss, while seed-level rankings of group strategies varied.
+
+| 14-head group selection | Mean loss change vs intact (95% interval) | Accuracy change, percentage points (95% interval) |
+|---|---:|---:|
+| Causal-aligned source ranking | +0.0186 [-0.0164, +0.0604] | -3.13 [-7.66, 0.00] |
+| Random target groups (average over 20 draws per seed) | +0.0325 [+0.0077, +0.0567] | -2.18 [-4.40, +0.03] |
+| Same-layer constrained mapping | +0.0247 [+0.0039, +0.0527] | -0.78 [-3.28, +0.94] |
+| Target-gradient ranking | +0.0798 [-0.0405, +0.2168] | -4.53 [-11.41, +1.56] |
+
 ## Decision and next experiment
 
-These four Stage 4 runs do not meet the transfer go/no-go condition. Stage 3 pair identities did not recur across seeds. Causal-aligned rank correlations were negative in all four point estimates; two seed intervals are fully below zero and one spans zero. The target-gradient baseline is positive in two seeds with intervals excluding zero, while group-ablation outcomes vary substantially. This is not evidence of useful transfer and is not yet a confirmatory negative result. Do not proceed to physical pruning or speed benchmarking.
+Stage 3 exact head-pair identities did not recur across seeds. Across all five Stage 4 seeds, causal-aligned rank correlation was negative, and the exploratory seed-and-example bootstrap interval was below zero. This does not meet the utility-transfer go criterion. Group-ablation outcomes remain variable, and the target-gradient proxy performs better in the ranking summary. This is a promising negative finding about this transfer procedure, not evidence that causal attribution is universally ineffective. Do not proceed to physical pruning or speed benchmarking on the basis of this pilot.
 
-Repeat the ranking-transfer diagnostic across the remaining Stage 3 seed (`20261117`) and evaluate the planned 512- and 2,048-example calibration budgets where data and compute permit. Freeze all rankings before evaluating the same labeled validation sample, report paired uncertainty across examples and seeds, and retain the random, representation, same-index, same-layer, target-gradient, and target-oracle comparisons. These 128-example results are pilot evidence, not a final confirmatory test.
+The immediate next stage is a higher-powered, preregistered replication: use multiple fine-tuning seeds, larger calibration subsets, and the full labeled validation set for final held-out utility measurement; include a second task and a second encoder-decoder model pair if compute permits. Freeze selection rules before opening final evaluation outcomes. Report hierarchical uncertainty over seeds and examples, utility-ranking metrics, paired group-ablation effects, and the random, representation, same-index, same-layer and target-gradient controls. Keep the target exact-ablation oracle explicitly non-deployable. Treat all current 128-example runs as pilot evidence, not a final confirmatory test.
 
 ## Artifacts
 
-The full inputs, mappings, per-head effects, group-ablation predictions, summary metrics, and dataset manifest are under `results/04_importance_transfer/transfer_seed20261121_sst2_20261119T075016_873545Z/`, `results/04_importance_transfer/transfer_seed20261120_sst2_20261119T080117_537534Z/`, `results/04_importance_transfer/transfer_seed20261119_sst2_20261119T113123_685828Z/`, and `results/04_importance_transfer/transfer_seed20261118_sst2_20261119T114142_086620Z/`.
+The reproducible cross-seed analysis is implemented in `src/cra_hp/experiments/stage4_cross_seed.py`; its ranking and paired group-bootstrap outputs are under `results/04_importance_transfer/cross_seed_analysis/`. Full per-seed inputs, mappings, per-head effects, group-ablation predictions, summary metrics, and manifests are under each `transfer_seed...` directory for seeds 20261117 through 20261121.
