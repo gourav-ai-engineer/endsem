@@ -28,7 +28,7 @@ The candidate gap is not attention-head similarity, head pruning, transferabilit
 | HIES (Findings EMNLP 2026) | Importance + entropy for stable head ranking | Strong target-model ranking baseline | Not itself cross-architecture causal correspondence |
 | IEICE (2026), Examining the Universality Assumption of Attention Head Pruning across Datasets | Dataset-specific pruning choices | Supports distribution-shift evaluation | Does not establish the proposed transfer mechanism |
 | Sheth et al. (2026), Pruning via Causal Attribution Preserves Reasoning Performance in Large Language Models (CAP) | Uses per-head masking effects on calibration examples to guide within-model weight pruning | Direct overlap in causal head scoring and pruning motivation | It does not align heads across architectures or test transfer of rankings from an encoder to a decoder |
-| Mishra (2026), The Fragility of Reasoning-Importance Attribution for Pruning Language Models | Reports measurement-target and granularity sensitivity, including noisy unit-level rankings and group interaction effects | Strong warning for causal score reliability and single-head-to-group extrapolation | Reasoning-model setting; does not examine cross-architecture head correspondence |
+| Mishra (2026), The Fragility of Reasoning-Importance Attribution for Pruning Language Models | Evaluates attribution target and granularity in reasoning models; finds single-neuron effects noisy and non-compositional, while head-level attribution is coarse enough to measure | Strong methodological precedent for testing reliability and group effects; its head-pruning experiments are within-model | Different reasoning tasks and model families; does not examine encoder-to-decoder head matching or transfer |
 
 ## Selected references
 
@@ -57,7 +57,7 @@ The candidate gap is not attention-head similarity, head pruning, transferabilit
 
 - Bibliographic records and abstracts have been checked for the key 2026 works; the HIES full paper and CAHP full paper were previously inspected.
 - CAP's arXiv full text and abstract were checked on 2026-11-19; it performs within-model causal head scoring and weight pruning, so the remaining distinction here is cross-architecture transfer rather than causal scoring itself.
-- Mishra's arXiv abstract was checked on 2026-11-19. The reported granularity and grouping concerns are directly relevant; its full methods and results still need review before detailed comparison.
+- Mishra's arXiv full text was inspected on 2026-11-19. It uses DeepSeek-R1-Distill-Qwen and Qwen2.5 models on GSM8K, with five calibration seeds at 1.5B and three at 7B; its main granularity result concerns MLP neurons, and it explicitly distinguishes these from measurable head-level effects. It uses hierarchical bootstraps over seeds and test items. These design choices are useful for our confirmatory analysis, but its task and model setting differ.
 - The IEICE full text has not yet been fully extracted for methods, datasets, limitations and result tables. Treat its row as abstract/record verified only.
 - TAHA is a close 2026 precedent and its full methods/results must be read before finalizing the novelty statement.
 - Citation chaining is not complete. For every directly relevant paper, inspect its references and forward citations for head alignment, causal intervention, pruning transfer, cross-architecture model alignment and domain-shift evaluation.
