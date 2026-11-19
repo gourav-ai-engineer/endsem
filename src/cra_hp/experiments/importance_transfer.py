@@ -119,18 +119,28 @@ def _top_overlap(left: pd.Series, right: pd.Series, count: int) -> float:
     return len(left_top & right_top) / count
 
 
-def _sample_heldout(examples: list[Any], size: int, seed: int) -> list[Any]:
-    if size >= len(examples):
-        return examples
-    labels = np.asarray([example.label for example in examples])
+def _sample_heldout(
+    examples: list[Any], size: int, seed: int, excluded_ids: set[str] | None = None
+) -> list[Any]:
+    excluded_ids = excluded_ids or set()
+    available = [example for example in examples if example.example_id not in excluded_ids]
+    if size > len(available):
+        raise ValueError(
+            f"Requested {size} held-out examples but only {len(available)} remain "
+            "after applying the exclusion list"
+        )
+    if size == len(available):
+        return available
     selected, _ = train_test_split(
-        np.arange(len(examples)),
+        np.arange(len(available)),
         train_size=size,
         random_state=seed,
-        stratify=labels,
+        stratify=np.asarray([example.label for example in available]),
     )
-    sampled = [examples[int(index)] for index in sorted(selected.tolist())]
-    if len(sampled) != size or len({item.label for item in sampled}) != len(np.unique(labels)):
+    sampled = [available[int(index)] for index in sorted(selected.tolist())]
+    if len(sampled) != size or len({item.label for item in sampled}) != len(
+        {item.label for item in available}
+    ):
         raise RuntimeError("Held-out sample does not satisfy the declared stratification")
     return sampled
 
@@ -257,8 +267,34 @@ def run(config_path: Path, source_run_override: Path | None = None) -> Path:
         for row in snapshot["rows"]
     ]
     eval_cfg = config["evaluation"]
+    excluded_ids: set[str] = set()
+    excluded_examples_path = eval_cfg.get("exclude_examples_file")
+    if excluded_examples_path:
+        exclusion_data = json.loads(
+            Path(excluded_examples_path).read_text(encoding="utf-8")
+        )
+        raw_excluded_ids = (
+            exclusion_data.get("heldout_example_ids", exclusion_data)
+            if isinstance(exclusion_data, dict)
+            else exclusion_data
+        )
+        if not isinstance(raw_excluded_ids, list) or any(
+            not isinstance(item, str) for item in raw_excluded_ids
+        ):
+            raise ValueError("Excluded-example file must contain a list of example IDs")
+        excluded_ids = set(raw_excluded_ids)
+        if len(excluded_ids) != len(raw_excluded_ids):
+            raise ValueError("Excluded-example file contains duplicate IDs")
+        unknown_excluded_ids = excluded_ids - {item.example_id for item in heldout_all}
+        if unknown_excluded_ids:
+            raise ValueError(
+                f"Excluded-example file contains {len(unknown_excluded_ids)} unknown IDs"
+            )
     heldout = _sample_heldout(
-        heldout_all, int(eval_cfg["sample_size"]), int(eval_cfg["sample_seed"])
+        heldout_all,
+        int(eval_cfg["sample_size"]),
+        int(eval_cfg["sample_seed"]),
+        excluded_ids,
     )
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S_%fZ")
     run_dir = Path(config["outputs"]["root"]) / f"transfer_seed{source_seed}_sst2_{timestamp}"
@@ -274,6 +310,13 @@ def run(config_path: Path, source_run_override: Path | None = None) -> Path:
         "heldout_source_split": "official_labeled_validation",
         "heldout_sample_size": len(heldout),
         "heldout_sample_seed": int(eval_cfg["sample_seed"]),
+        "excluded_examples_file": str(excluded_examples_path) if excluded_examples_path else None,
+        "excluded_examples_file_sha256": (
+            hashlib.sha256(Path(excluded_examples_path).read_bytes()).hexdigest()
+            if excluded_examples_path
+            else None
+        ),
+        "excluded_example_count": len(excluded_ids),
         "heldout_example_ids": [example.example_id for example in heldout],
         "heldout_example_ids_sha256": hashlib.sha256(
             "\n".join(example.example_id for example in heldout).encode()
