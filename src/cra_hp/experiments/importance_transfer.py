@@ -6,9 +6,13 @@ import argparse
 import hashlib
 import json
 import subprocess
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
 
 import numpy as np
 import pandas as pd
@@ -24,7 +28,81 @@ from cra_hp.experiments.causal_pilot import (
     _exact_ablation,
     _install_gates,
 )
-from cra_hp.task_data import load_sst2_pilot
+from cra_hp.task_data import TextExample
+
+
+def _load_validation_snapshot(path: Path, dataset_cfg: dict[str, Any]) -> dict[str, Any]:
+    if path.exists():
+        return json.loads(path.read_text(encoding="utf-8"))
+
+    from huggingface_hub import HfApi
+
+    dataset_id = str(dataset_cfg["id"])
+    revision = str(dataset_cfg["revision"])
+    repo_main_sha = HfApi().dataset_info(dataset_id, revision="main").sha
+    if repo_main_sha != revision:
+        raise RuntimeError(
+            f"Dataset main revision {repo_main_sha} differs from the pinned {revision}"
+        )
+
+    rows: list[dict[str, Any]] = []
+    total_rows = 872
+    page_size = 25
+    for offset in range(0, total_rows, page_size):
+        length = min(page_size, total_rows - offset)
+        query = urlencode({
+            "dataset": dataset_id,
+            "config": str(dataset_cfg["config"]),
+            "split": str(dataset_cfg["heldout_split"]),
+            "offset": offset,
+            "length": length,
+        })
+        request = Request(
+            f"https://datasets-server.huggingface.co/rows?{query}",
+            headers={"User-Agent": "CRA-HP-research/0.4"},
+        )
+        for attempt in range(6):
+            try:
+                with urlopen(request, timeout=60) as response:
+                    page = json.loads(response.read())
+                break
+            except HTTPError as exc:
+                if exc.code not in (429, 502, 503) or attempt == 5:
+                    raise
+                retry_after = exc.headers.get("Retry-After")
+                delay = float(retry_after) if retry_after else min(30, 3 * (attempt + 1))
+                time.sleep(delay)
+            except URLError:
+                if attempt == 5:
+                    raise
+                time.sleep(min(30, 3 * (attempt + 1)))
+        if page.get("num_rows_total") != total_rows:
+            raise RuntimeError("Pinned SST-2 validation row count changed")
+        page_rows = [item["row"] for item in page["rows"]]
+        if len(page_rows) != length or [item["idx"] for item in page_rows] != list(
+            range(offset, offset + length)
+        ):
+            raise RuntimeError(f"Validation rows were incomplete at offset {offset}")
+        rows.extend(page_rows)
+        print(f"Fetched pinned validation rows through {offset + length}/{total_rows}")
+        time.sleep(3.0)
+
+    if len(rows) != total_rows or any(
+        row["label"] not in (0, 1) or not row["sentence"].strip() for row in rows
+    ):
+        raise RuntimeError("Pinned SST-2 validation snapshot failed content checks")
+    snapshot = {
+        "dataset_id": dataset_id,
+        "config": str(dataset_cfg["config"]),
+        "split": str(dataset_cfg["heldout_split"]),
+        "revision": revision,
+        "repo_main_sha": repo_main_sha,
+        "source": "Hugging Face datasets-server rows API at verified pinned repo revision",
+        "rows": rows,
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(snapshot, ensure_ascii=False), encoding="utf-8")
+    return snapshot
 
 
 def _correlation(left: pd.Series, right: pd.Series, method: str) -> float:
@@ -156,10 +234,28 @@ def run(config_path: Path) -> Path:
     stage3_config = yaml.safe_load(
         (source_run / "config.yaml").read_text(encoding="utf-8")
     )
-    data = load_sst2_pilot(stage3_config["dataset"])
+    snapshot_path = Path(config["heldout_snapshot"])
+    snapshot = _load_validation_snapshot(snapshot_path, stage3_config["dataset"])
+    expected_dataset = stage3_config["dataset"]
+    if (
+        snapshot.get("dataset_id") != expected_dataset["id"]
+        or snapshot.get("config") != expected_dataset["config"]
+        or snapshot.get("split") != expected_dataset["heldout_split"]
+        or snapshot.get("revision") != expected_dataset["revision"]
+        or snapshot.get("repo_main_sha") != expected_dataset["revision"]
+    ):
+        raise ValueError("Held-out snapshot provenance does not match the pinned Stage 3 data")
+    heldout_all = [
+        TextExample(
+            example_id=f"validation:{int(row['idx'])}",
+            text=str(row["sentence"]),
+            label=int(row["label"]),
+        )
+        for row in snapshot["rows"]
+    ]
     eval_cfg = config["evaluation"]
     heldout = _sample_heldout(
-        data.heldout, int(eval_cfg["sample_size"]), int(eval_cfg["sample_seed"])
+        heldout_all, int(eval_cfg["sample_size"]), int(eval_cfg["sample_seed"])
     )
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S_%fZ")
     run_dir = Path(config["outputs"]["root"]) / f"transfer_seed20261121_sst2_{timestamp}"
@@ -169,6 +265,8 @@ def run(config_path: Path) -> Path:
     )
     manifest = {
         "dataset_revision": stage3_config["dataset"]["revision"],
+        "validation_snapshot_source": snapshot.get("source"),
+        "validation_snapshot_sha256": hashlib.sha256(snapshot_path.read_bytes()).hexdigest(),
         "source_run": str(source_run),
         "heldout_source_split": "official_labeled_validation",
         "heldout_sample_size": len(heldout),
