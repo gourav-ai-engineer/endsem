@@ -228,9 +228,12 @@ def _summarize_grouped(frame: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(summaries)
 
 
-def run(config_path: Path) -> Path:
+def run(config_path: Path, source_run_override: Path | None = None) -> Path:
     config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
-    source_run = Path(config["source_run"])
+    source_run = source_run_override or Path(config["source_run"])
+    config["source_run"] = str(source_run)
+    source_summary = json.loads((source_run / "summary.json").read_text(encoding="utf-8"))
+    source_seed = int(source_summary["seed"])
     stage3_config = yaml.safe_load(
         (source_run / "config.yaml").read_text(encoding="utf-8")
     )
@@ -258,7 +261,7 @@ def run(config_path: Path) -> Path:
         heldout_all, int(eval_cfg["sample_size"]), int(eval_cfg["sample_seed"])
     )
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S_%fZ")
-    run_dir = Path(config["outputs"]["root"]) / f"transfer_seed20261121_sst2_{timestamp}"
+    run_dir = Path(config["outputs"]["root"]) / f"transfer_seed{source_seed}_sst2_{timestamp}"
     run_dir.mkdir(parents=True, exist_ok=False)
     (run_dir / "config.yaml").write_text(
         yaml.safe_dump(config, sort_keys=False), encoding="utf-8"
@@ -463,6 +466,7 @@ def run(config_path: Path) -> Path:
             ["git", "rev-parse", "HEAD"], text=True
         ).strip(),
         "source_stage3_run": str(source_run),
+        "source_seed": source_seed,
         "target_model": "gpt2",
         "source_model": "bert-base-uncased",
         "device": str(device),
@@ -494,8 +498,9 @@ def run(config_path: Path) -> Path:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, required=True)
+    parser.add_argument("--source-run", type=Path)
     args = parser.parse_args()
-    output = run(args.config)
+    output = run(args.config, args.source_run)
     print(f"Stage 4 importance-transfer artifacts written to: {output}")
 
 
