@@ -124,6 +124,42 @@ The empirical permutation p-value was 0.0099 (minimum attainable with 100 draws)
 
 The empirical permutation p-value was 0.1386. Global matching exceeded the same-layer score by 0.0427 CKA, but only 16 pairs were selected. Across all four seeds, no exact global source-target head pair is shared between any two seeds; there are 111 distinct pairs in total. The changing match count and absent pair recurrence show that the head correspondence itself remains unstable, even though global scores exceed structural and random baselines in each run.
 
-## Next Stage 3 step
+## Fifth seed: 20261121
 
-Run the final predeclared seed (`20261121`) with an independent train/selection/calibration split. Then report pair-frequency and score uncertainty across all five seeds, alongside seed-wise permutation results. Only after that should we compare source causal rankings with target exact-ablation utility on held-out examples. Do not proceed to physical pruning from these pilot runs alone.
+**Run:** `stage3_bert-gpt2_sst2_20261121_36225ed9_20261118T170429_216649Z`
+
+| Measure | BERT | GPT-2 |
+|---|---:|---:|
+| Checkpoint-selection accuracy (512 examples) | 0.8828 | 0.8438 |
+| Outer SST-2 validation accuracy (872 examples) | 0.8509 | 0.8498 |
+| Mean exact loss change after one-head ablation | -0.00089 | +0.00091 |
+| Mean true-class margin decrease after ablation | +0.00717 | +0.02418 |
+| Mean prediction-flip rate across head/example pairs | 0.45% | 1.69% |
+| Pearson correlation: gradient proxy vs exact mean loss change across heads | 0.953 | 0.402 |
+
+| Causal-signature matching method | Mean CKA | Match count |
+|---|---:|---:|
+| Global partial matching | **0.2653** | 23 |
+| Same-layer, fixed cardinality | 0.2052 | 23 |
+| Same-index, fixed cardinality | 0.1264 | 23 |
+| Random fixed-cardinality assignments, 500 draws | 0.0215 ± 0.0083 SD | 23 |
+| Label-stratified example-permutation null, 100 draws | 0.2451 ± 0.0143 SD | 23 |
+
+The empirical permutation p-value was 0.1089. The observed global score exceeded the same-layer score by 0.0601 CKA, but was not distinguishable from the 100-draw permutation null at the 0.05 level.
+
+## Five-seed summary and decision
+
+| Seed | Matched pairs | Global CKA | Same-layer CKA | Same-index CKA | Random mean | Permutation p |
+|---:|---:|---:|---:|---:|---:|---:|
+| 20261117 | 34 | 0.2153 | 0.1690 | 0.0995 | 0.0238 | 0.0099 |
+| 20261118 | 21 | 0.2270 | 0.1651 | 0.1014 | 0.0208 | 0.0693 |
+| 20261119 | 40 | 0.2297 | 0.1545 | 0.0770 | 0.0257 | 0.0099 |
+| 20261120 | 16 | 0.2217 | 0.1790 | 0.0827 | 0.0170 | 0.1386 |
+| 20261121 | 23 | 0.2653 | 0.2052 | 0.1264 | 0.0215 | 0.1089 |
+| Mean (SD across seeds) | 26.8 (9.9) | 0.2318 (0.0195) | 0.1746 (0.0192) | 0.0974 (0.0193) | 0.0218 (0.0033) | — |
+
+Global matching exceeded same-layer, same-index, and random mean scores in all five runs, but exceeded the label-stratified permutation null at p<0.05 in only two runs. Match cardinality varied from 16 to 40. The corrected exact pair audit found zero pairwise intersections: no `(source_head, target_head)` pair recurred across any two seeds. There are 134 distinct assigned pairs across the five runs. Thus, the score-level direction is more consistent than the identities of the selected heads, and the protocol's reproducibility exit condition is **not met**. The five small pilot runs do not establish stable causal correspondence.
+
+## Next step: Stage 4 importance-transfer diagnostic
+
+Proceed only with a held-out diagnostic: freeze source rankings and mappings from calibration data, then compare them against target exact-ablation utility on the untouched labeled validation examples. Include same-index, same-layer, random, unaligned source, target-gradient, and target exact-ablation oracle references where supported; report coverage for partial causal mappings. This is diagnostic despite the failed Stage 3 stability gate. Do not use held-out outcomes to change rankings, and do not proceed to physical pruning unless the proposed method beats relevant baselines with uncertainty reported.
