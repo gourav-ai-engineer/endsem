@@ -1,6 +1,6 @@
 {
   "run_id": "transfer_seed20261120_sst2_20261119T080117_537534Z",
-  "created_at_utc": "2026-11-19T08:06:55.276125+00:00",
+  "created_at_utc": "2026-11-19T13:36:55.276125+05:30",
   "git_sha": "34023078f63e98d7ee213f69fc3cf511df2e8d45",
   "source_stage3_run": "results\\03_causal_pilot\\stage3_bert-gpt2_sst2_20261120_ba78d983_20261118T102517_770322Z",
   "source_seed": 20261120,
@@ -100,5 +100,6 @@
       "std": 0.01162788336593288
     }
   },
-  "interpretation_warning": "Single-seed, 128-example diagnostic. Stage 3 exact pair recurrence failed. The target exact-ablation oracle is computed on this evaluation sample and is a non-deployable upper reference. No physical pruning or speed claims."
+  "interpretation_warning": "Single-seed, 128-example diagnostic. Stage 3 exact pair recurrence failed. The target exact-ablation oracle is computed on this evaluation sample and is a non-deployable upper reference. No physical pruning or speed claims.",
+  "postprocessing_note": "Renamed target utility count column from calibration_examples to heldout_examples; numeric values unchanged."
 }
