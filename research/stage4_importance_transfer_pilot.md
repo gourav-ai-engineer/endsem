@@ -3,7 +3,7 @@
 **Run:** `transfer_seed20261121_sst2_20261119T075016_873545Z`  
 **Analysis code revision:** `7509900e6ff27513933c92480f2f3788e7724b6f`  
 **Source/target models:** BERT-base-uncased → GPT-2  
-**Status:** Three low-power held-out diagnostics completed; utility transfer was not established. Two predeclared seed runs remain.
+**Status:** Four low-power held-out diagnostics completed; useful transfer was not established. One predeclared seed run remains.
 
 ## Design
 
@@ -82,12 +82,32 @@ The no-ablation group had loss 0.2974, accuracy 0.8906, and positive F1 0.8889. 
 | Random target sets, 20 draws (mean ± SD) | 0.3319 ± 0.0303 | 0.8586 ± 0.0154 | 0.8538 ± 0.0183 |
 | Target exact-ablation oracle† | 0.2626 | 0.8984 | 0.8960 |
 
+### Seed 20261118
+
+**Run:** `transfer_seed20261118_sst2_20261119T114142_086620Z`  
+**Analysis code revision:** `28125c54a4d65e9aba50c672a711129dfce3dc08`
+
+Causal-aligned coverage was 21/144 (14.6%); Spearman ρ was **-0.269** (95% interval [-0.385, -0.116]). Same-layer constrained ranking was +0.170 ([-0.045, +0.366]); representation CKA +0.082 ([-0.011, +0.162]); same-index +0.054 ([-0.037, +0.151]); target-gradient +0.366 ([+0.066, +0.482]). Random mappings had mean ρ -0.012 (SD 0.241; empirical interval [-0.457, +0.404]). This is the fourth negative causal-aligned point estimate, and the second seed with a bootstrap interval fully below zero.
+
+The no-ablation group had loss 0.2569, accuracy 0.9063, and positive F1 0.9104. The causal-aligned group had loss 0.2612, accuracy 0.8984, and F1 0.8976; the same-layer group had loss 0.2877, accuracy 0.8906, and F1 0.8939. Random groups averaged loss 0.2802 ± 0.0277, accuracy 0.8828 ± 0.0183, and F1 0.8850 ± 0.0214. The target exact-ablation oracle group had loss 0.4468, accuracy 0.7969, and F1 0.7547, again failing to translate individual scores into a reliable group choice.
+
+| Seed 20261118 grouped selection | Mean loss | Accuracy | Positive F1 |
+|---|---:|---:|---:|
+| No ablation | 0.2569 | 0.9063 | 0.9104 |
+| Causal-aligned source ranking | 0.2612 | 0.8984 | 0.8976 |
+| Same-layer constrained source ranking | 0.2877 | 0.8906 | 0.8939 |
+| Representation-CKA source ranking | 0.2709 | 0.8672 | 0.8702 |
+| Same-index source ranking | 0.2735 | 0.8906 | 0.8955 |
+| Target-gradient ranking | 0.5542 | 0.7734 | 0.7752 |
+| Random target sets, 20 draws (mean ± SD) | 0.2802 ± 0.0277 | 0.8828 ± 0.0183 | 0.8850 ± 0.0214 |
+| Target exact-ablation oracle† | 0.4468 | 0.7969 | 0.7547 |
+
 ## Decision and next experiment
 
-These three Stage 4 runs do not meet the transfer go/no-go condition. Stage 3 pair identities did not recur across seeds. Causal-aligned rank correlations were negative in all three point estimates, but the third seed's interval includes zero, so the association is not consistently distinguishable from zero at this pilot scale. The target-gradient baseline is also inconsistent, and group-ablation outcomes vary. This is not evidence of useful transfer and is not yet a confirmatory negative result. Do not proceed to physical pruning or speed benchmarking.
+These four Stage 4 runs do not meet the transfer go/no-go condition. Stage 3 pair identities did not recur across seeds. Causal-aligned rank correlations were negative in all four point estimates; two seed intervals are fully below zero and one spans zero. The target-gradient baseline is positive in two seeds with intervals excluding zero, while group-ablation outcomes vary substantially. This is not evidence of useful transfer and is not yet a confirmatory negative result. Do not proceed to physical pruning or speed benchmarking.
 
-Repeat the ranking-transfer diagnostic across the remaining Stage 3 seeds (`20261117`, `20261118`) and evaluate the planned 512- and 2,048-example calibration budgets where data and compute permit. Freeze all rankings before evaluating the same labeled validation sample, report paired uncertainty across examples and seeds, and retain the random, representation, same-index, same-layer, target-gradient, and target-oracle comparisons. These 128-example results are pilot evidence, not a final confirmatory test.
+Repeat the ranking-transfer diagnostic across the remaining Stage 3 seed (`20261117`) and evaluate the planned 512- and 2,048-example calibration budgets where data and compute permit. Freeze all rankings before evaluating the same labeled validation sample, report paired uncertainty across examples and seeds, and retain the random, representation, same-index, same-layer, target-gradient, and target-oracle comparisons. These 128-example results are pilot evidence, not a final confirmatory test.
 
 ## Artifacts
 
-The full inputs, mappings, per-head effects, group-ablation predictions, summary metrics, and dataset manifest are under `results/04_importance_transfer/transfer_seed20261121_sst2_20261119T075016_873545Z/`, `results/04_importance_transfer/transfer_seed20261120_sst2_20261119T080117_537534Z/`, and `results/04_importance_transfer/transfer_seed20261119_sst2_20261119T113123_685828Z/`.
+The full inputs, mappings, per-head effects, group-ablation predictions, summary metrics, and dataset manifest are under `results/04_importance_transfer/transfer_seed20261121_sst2_20261119T075016_873545Z/`, `results/04_importance_transfer/transfer_seed20261120_sst2_20261119T080117_537534Z/`, `results/04_importance_transfer/transfer_seed20261119_sst2_20261119T113123_685828Z/`, and `results/04_importance_transfer/transfer_seed20261118_sst2_20261119T114142_086620Z/`.

@@ -1,0 +1,22 @@
+project:
+  name: cra_hp
+  stage: stage4_importance_transfer_pilot
+  protocol_version: '0.1'
+source_run: results\03_causal_pilot\stage3_bert-gpt2_sst2_20261118_77a4208b_20261118T070529_838582Z
+representation_matches: results/02_representation_pilot/repr_20261118T025519_863016Z/matches_global_partial.csv
+representation_method: global_partial_hungarian
+heldout_snapshot: data/raw/glue-sst2-validation-bcdcba79d07bc864c1c254ccfcedcce55bcc9a8c.json
+evaluation:
+  split: labeled_official_validation
+  sample_size: 128
+  sample_seed: 20261122
+  batch_size: 4
+  exact_ablation_heads_per_forward: 4
+  prune_fraction: 0.1
+  random_mapping_replicates: 100
+  random_group_replicates: 20
+  bootstrap_replicates: 500
+  bootstrap_seed: 20261123
+  random_seed: 20261124
+outputs:
+  root: results/04_importance_transfer
