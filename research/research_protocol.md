@@ -108,6 +108,10 @@ Use calibration budgets 128, 512 and 2048 where dataset size permits. Evaluate i
 
 Go/no-go: proceed to physical pruning only if proposed transfer beats relevant baselines on held-out target utility with uncertainty reported and does not rely on test leakage.
 
+### Stage 4 pilot implementation status (2026-11-19)
+
+`configs/stage4_transfer_pilot.yaml` and `cra_hp.experiments.importance_transfer` define a bounded diagnostic using the final Stage 3 seed. Source rankings and mappings are frozen from calibration artifacts; target exact single-head utility and grouped 10% head ablations are evaluated on a stratified 128-example sample from the labeled outer validation split. Comparators include causal partial matching, same-layer and same-index mappings, the Stage 2 representation-CKA mapping, target-gradient ranking, random mappings/pruning sets, and a target exact-ablation oracle. This pilot is single-seed and low-power; it cannot reverse the failed Stage 3 stability decision or authorize physical pruning. Run artifacts are pending.
+
 ## Stage 5 — Physical structured pruning
 
 - Remove head-specific slices from query/key/value projections and corresponding output-projection input dimensions; update model configuration and validate tensor shapes.

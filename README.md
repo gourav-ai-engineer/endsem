@@ -52,7 +52,7 @@ The Stage 2 analysis and all five predeclared Stage 3 SST-2 causal pilot seeds a
 | 2. Representation pilot | Corrected pilot completed; analysis recorded |
 | 3. Go/no-go | Passed for exploratory Stage 3 only; full mapping is unstable |
 | 4. Causal correspondence | Five seeds completed; reproducible pair mapping not established |
-| 5. Importance transfer | Next: held-out diagnostic; no pruning claims |
+| 5. Importance transfer | Pilot implementation ready; held-out run pending |
 | 6. Physical pruning | Not started |
 
 ## Research integrity
