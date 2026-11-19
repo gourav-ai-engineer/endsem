@@ -151,6 +151,14 @@ Stage 3 exact head-pair identities did not recur across seeds. Across all five S
 
 The immediate next stage is an out-of-sample extension on the 744 remaining examples in the same pinned SST-2 validation split, excluding every example used in the 128-example pilot. The exclusion list is frozen at `data/raw/stage4_pilot_128_example_exclusion.json`, and the run configuration is `configs/stage4_transfer_residual_validation.yaml`. This is not preregistered because it follows inspection of the pilot, but it tests the same frozen mappings/rankings on disjoint examples without retuning. After that, a confirmatory study should use additional tasks and encoder-decoder model pairs, larger calibration subsets and a fresh final evaluation split. Freeze selection rules before opening those outcomes; report hierarchical uncertainty over seeds and examples, utility-ranking metrics, paired group-ablation effects, and random, representation, same-index, same-layer and target-gradient controls. Keep the target exact-ablation oracle explicitly non-deployable.
 
+### Residual validation extension: first seed completed
+
+The first extension evaluates source seed 20261121 on all 744 remaining labeled SST-2 validation examples; the exclusion manifest confirms zero overlap with the 128-example pilot. This is an out-of-sample extension after pilot inspection, not a pre-registered replication.
+
+On the disjoint residual examples, the causal-aligned ranking again had negative Spearman correlation with exact target utility (ρ = **-0.284**, 95% example-bootstrap interval [-0.335, -0.146]); target-gradient was positive (+0.186 [ +0.076, +0.240 ]). This reproduces the ranking-direction result for one seed with a much larger evaluation sample.
+
+The group result differs from the pilot subset. On the 744 residual examples, causal-aligned removal of 14 heads had mean loss 0.3606 versus 0.3721 intact (accuracy 0.8441 versus 0.8481). Twenty random groups averaged loss 0.4353 ± 0.0956 and accuracy 0.8072 ± 0.0613. No group-level uncertainty interval has been estimated for this single seed. This discrepancy reinforces that per-head rank correlation does not determine joint group effects; it is not evidence of a repeatable pruning benefit. Run outputs are in `results/04_importance_transfer_residual/transfer_seed20261121_sst2_20261119T121156_573875Z/`.
+
 ## Artifacts
 
 The reproducible cross-seed analysis is implemented in `src/cra_hp/experiments/stage4_cross_seed.py`; its ranking and paired group-bootstrap outputs are under `results/04_importance_transfer/cross_seed_analysis/`. Full per-seed inputs, mappings, per-head effects, group-ablation predictions, summary metrics, and manifests are under each `transfer_seed...` directory for seeds 20261117 through 20261121.

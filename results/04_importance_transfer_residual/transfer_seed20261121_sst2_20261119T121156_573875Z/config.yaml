@@ -1,0 +1,23 @@
+project:
+  name: cra_hp
+  stage: stage4_residual_validation_extension
+  protocol_version: '0.2'
+source_run: results\03_causal_pilot\stage3_bert-gpt2_sst2_20261121_36225ed9_20261118T170429_216649Z
+representation_matches: results/02_representation_pilot/repr_20261118T025519_863016Z/matches_global_partial.csv
+representation_method: global_partial_hungarian
+heldout_snapshot: data/raw/glue-sst2-validation-bcdcba79d07bc864c1c254ccfcedcce55bcc9a8c.json
+evaluation:
+  split: labeled_official_validation_residual_after_stage4_pilot
+  sample_size: 744
+  sample_seed: 20261126
+  exclude_examples_file: data/raw/stage4_pilot_128_example_exclusion.json
+  batch_size: 4
+  exact_ablation_heads_per_forward: 4
+  prune_fraction: 0.1
+  random_mapping_replicates: 100
+  random_group_replicates: 20
+  bootstrap_replicates: 500
+  bootstrap_seed: 20261127
+  random_seed: 20261128
+outputs:
+  root: results/04_importance_transfer_residual

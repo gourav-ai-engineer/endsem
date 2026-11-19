@@ -2,7 +2,7 @@
 
 Research repository for studying whether task-conditioned causal correspondence between attention heads in bidirectional encoder Transformers and causal decoder Transformers can transfer pruning utility.
 
-**Status:** Five Stage 3 seeds completed; exact head-pair recurrence failed. Across five Stage 4 seeds, causal-aligned utility correlation averaged -0.238 (exploratory hierarchical 95% interval [-0.319, -0.051]); useful transfer was not established.
+**Status:** Five Stage 3 seeds completed; exact head-pair recurrence failed. Across five Stage 4 pilot seeds, causal-aligned utility correlation averaged -0.238 (exploratory hierarchical 95% interval [-0.319, -0.051]); the disjoint 744-example extension is underway.
 
 ## Research question
 
@@ -52,7 +52,7 @@ The Stage 2 analysis, all five predeclared Stage 3 SST-2 causal pilot seeds, and
 | 2. Representation pilot | Corrected pilot completed; analysis recorded |
 | 3. Go/no-go | Passed for exploratory Stage 3 only; full mapping is unstable |
 | 4. Causal correspondence | Five seeds completed; reproducible pair mapping not established |
-| 5. Importance transfer | Five 128-example held-out seeds complete; cross-seed pilot does not support transfer; larger confirmatory study remains |
+| 5. Importance transfer | Five 128-example pilot seeds complete; one 744-example disjoint extension complete; four residual seeds remain |
 | 6. Physical pruning | Deferred because transfer go/no-go failed |
 
 ## Research integrity

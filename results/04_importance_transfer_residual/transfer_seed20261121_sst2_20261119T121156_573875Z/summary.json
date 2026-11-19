@@ -1,0 +1,104 @@
+{
+  "run_id": "transfer_seed20261121_sst2_20261119T121156_573875Z",
+  "created_at_utc": "2026-11-19T13:09:05.411806+00:00",
+  "git_sha": "2459ef3994abda0f63e435f5a512301419468797",
+  "source_stage3_run": "results\\03_causal_pilot\\stage3_bert-gpt2_sst2_20261121_36225ed9_20261118T170429_216649Z",
+  "source_seed": 20261121,
+  "target_model": "gpt2",
+  "source_model": "bert-base-uncased",
+  "device": "cpu",
+  "heldout_examples": 744,
+  "prune_budget_heads": 14,
+  "ranking_metrics": [
+    {
+      "method": "causal_aligned",
+      "coverage_heads": 23,
+      "coverage_fraction": 0.1597222222222222,
+      "spearman_rho": -0.283596837944664,
+      "spearman_bootstrap_95_low": -0.33498023715415026,
+      "spearman_bootstrap_95_high": -0.14599802371541526,
+      "kendall_tau": -0.20948616600790515,
+      "least_important_top_10pct_overlap": 0.5,
+      "overlap_k_within_coverage": 2
+    },
+    {
+      "method": "causal_same_layer",
+      "coverage_heads": 23,
+      "coverage_fraction": 0.1597222222222222,
+      "spearman_rho": -0.29249011857707513,
+      "spearman_bootstrap_95_low": -0.37902667984189725,
+      "spearman_bootstrap_95_high": -0.23517786561264822,
+      "kendall_tau": -0.20948616600790515,
+      "least_important_top_10pct_overlap": 0.0,
+      "overlap_k_within_coverage": 2
+    },
+    {
+      "method": "representation_cka",
+      "coverage_heads": 143,
+      "coverage_fraction": 0.9930555555555556,
+      "spearman_rho": 0.03499376210643816,
+      "spearman_bootstrap_95_low": -0.017456047473653105,
+      "spearman_bootstrap_95_high": 0.1221170261663219,
+      "kendall_tau": 0.02393381266620703,
+      "least_important_top_10pct_overlap": 0.21428571428571427,
+      "overlap_k_within_coverage": 14
+    },
+    {
+      "method": "same_index",
+      "coverage_heads": 144,
+      "coverage_fraction": 1.0,
+      "spearman_rho": 0.01448436620850414,
+      "spearman_bootstrap_95_low": -0.0663317860300619,
+      "spearman_bootstrap_95_high": 0.07944045896632101,
+      "kendall_tau": 0.005827505827505827,
+      "least_important_top_10pct_overlap": 0.21428571428571427,
+      "overlap_k_within_coverage": 14
+    },
+    {
+      "method": "target_gradient",
+      "coverage_heads": 144,
+      "coverage_fraction": 1.0,
+      "spearman_rho": 0.1857808857808858,
+      "spearman_bootstrap_95_low": 0.07607999758861829,
+      "spearman_bootstrap_95_high": 0.2397350494333253,
+      "kendall_tau": 0.16763791763791763,
+      "least_important_top_10pct_overlap": 0.21428571428571427,
+      "overlap_k_within_coverage": 14
+    }
+  ],
+  "random_mapping_metrics": {
+    "spearman_rho": {
+      "mean": -0.011798418972332015,
+      "std": 0.21043191049051924,
+      "q025": -0.4397974308300395,
+      "q975": 0.3818181818181817
+    },
+    "kendall_tau": {
+      "mean": -0.00924901185770751,
+      "std": 0.14760558807297647,
+      "q025": -0.324703557312253,
+      "q975": 0.2498023715415017
+    },
+    "least_important_top_10pct_overlap": {
+      "mean": 0.065,
+      "std": 0.16899883449481554,
+      "q025": 0.0,
+      "q975": 0.5
+    }
+  },
+  "random_group_ablation": {
+    "mean_loss": {
+      "mean": 0.43525003076885344,
+      "std": 0.09557830595322425
+    },
+    "accuracy": {
+      "mean": 0.8071908602150538,
+      "std": 0.06134080585303949
+    },
+    "positive_f1": {
+      "mean": 0.7782929818941244,
+      "std": 0.10931777056000112
+    }
+  },
+  "interpretation_warning": "Single-seed, 128-example diagnostic. Stage 3 exact pair recurrence failed. The target exact-ablation oracle is computed on this evaluation sample and is a non-deployable upper reference. No physical pruning or speed claims."
+}
