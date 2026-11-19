@@ -328,6 +328,9 @@ def run(config_path: Path, source_run_override: Path | None = None) -> Path:
         max_length=int(model_cfg["max_length"]),
         device=device,
     )
+    exact_summary = exact_summary.rename(
+        columns={"calibration_examples": "heldout_examples"}
+    )
     exact_frame.to_csv(run_dir / "target_heldout_per_head_effects.csv", index=False)
     exact_summary.to_csv(run_dir / "target_heldout_head_utility.csv", index=False)
     target_utility = exact_summary.set_index("head_id")["mean_loss_delta"]
