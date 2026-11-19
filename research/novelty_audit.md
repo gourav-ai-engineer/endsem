@@ -1,6 +1,6 @@
 # Provisional Novelty Audit
 
-**Status:** provisional; not a claim of exhaustive novelty. Last curated: 2026-11-17.
+**Status:** provisional; not a claim of exhaustive novelty. Last curated: 2026-11-19.
 
 ## Proposed narrow gap
 
@@ -27,6 +27,8 @@ The candidate gap is not attention-head similarity, head pruning, transferabilit
 | CAHP (IJCNN 2026) | Complementary, graph-based head pruning | Interaction-aware selection | Encoder-focused pruning; generative cross-architecture transfer remains distinct |
 | HIES (Findings EMNLP 2026) | Importance + entropy for stable head ranking | Strong target-model ranking baseline | Not itself cross-architecture causal correspondence |
 | IEICE (2026), Examining the Universality Assumption of Attention Head Pruning across Datasets | Dataset-specific pruning choices | Supports distribution-shift evaluation | Does not establish the proposed transfer mechanism |
+| Sheth et al. (2026), Pruning via Causal Attribution Preserves Reasoning Performance in Large Language Models (CAP) | Uses per-head masking effects on calibration examples to guide within-model weight pruning | Direct overlap in causal head scoring and pruning motivation | It does not align heads across architectures or test transfer of rankings from an encoder to a decoder |
+| Mishra (2026), The Fragility of Reasoning-Importance Attribution for Pruning Language Models | Reports measurement-target and granularity sensitivity, including noisy unit-level rankings and group interaction effects | Strong warning for causal score reliability and single-head-to-group extrapolation | Reasoning-model setting; does not examine cross-architecture head correspondence |
 
 ## Selected references
 
@@ -48,10 +50,14 @@ The candidate gap is not attention-head similarity, head pruning, transferabilit
 16. *Examining the Universality Assumption of Attention Head Pruning across Datasets.* IEICE Transactions on Information and Systems (2026). DOI: 10.1587/transinf.2026PAL0001.
 17. *Lightweight Plant Phenotypic Feature Extraction via Transferable Attention Head Pruning in Vision Transformers* (TAHA). Frontiers in Plant Science (2026). https://doi.org/10.3389/fpls.2026.1747598
 18. *Shapley Head Pruning.* arXiv:2210.05709. https://arxiv.org/abs/2210.05709
+19. Sheth, A. et al. (2026). *Pruning via Causal Attribution Preserves Reasoning Performance in Large Language Models.* arXiv:2606.19350. https://arxiv.org/abs/2606.19350
+20. Mishra, H. (2026). *The Fragility of Reasoning-Importance Attribution for Pruning Language Models.* arXiv:2611.22234. https://arxiv.org/abs/2611.22234
 
 ## Verification status and required closure
 
 - Bibliographic records and abstracts have been checked for the key 2026 works; the HIES full paper and CAHP full paper were previously inspected.
+- CAP's arXiv full text and abstract were checked on 2026-11-19; it performs within-model causal head scoring and weight pruning, so the remaining distinction here is cross-architecture transfer rather than causal scoring itself.
+- Mishra's arXiv abstract was checked on 2026-11-19. The reported granularity and grouping concerns are directly relevant; its full methods and results still need review before detailed comparison.
 - The IEICE full text has not yet been fully extracted for methods, datasets, limitations and result tables. Treat its row as abstract/record verified only.
 - TAHA is a close 2026 precedent and its full methods/results must be read before finalizing the novelty statement.
 - Citation chaining is not complete. For every directly relevant paper, inspect its references and forward citations for head alignment, causal intervention, pruning transfer, cross-architecture model alignment and domain-shift evaluation.
