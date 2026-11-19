@@ -158,6 +158,8 @@ The empirical permutation p-value was 0.1089. The observed global score exceeded
 | 20261121 | 23 | 0.2653 | 0.2052 | 0.1264 | 0.0215 | 0.1089 |
 | Mean (SD across seeds) | 26.8 (9.9) | 0.2318 (0.0195) | 0.1746 (0.0192) | 0.0974 (0.0193) | 0.0218 (0.0033) | — |
 
+The mean permutation-null score across seeds was 0.1896 (SD 0.0385); the mean empirical p-value was 0.0673 (SD 0.0579). These dispersions are descriptive with five runs, not inferential confidence intervals.
+
 Global matching exceeded same-layer, same-index, and random mean scores in all five runs, but exceeded the label-stratified permutation null at p<0.05 in only two runs. Match cardinality varied from 16 to 40. The corrected exact pair audit found zero pairwise intersections: no `(source_head, target_head)` pair recurred across any two seeds. There are 134 distinct assigned pairs across the five runs. Thus, the score-level direction is more consistent than the identities of the selected heads, and the protocol's reproducibility exit condition is **not met**. The five small pilot runs do not establish stable causal correspondence.
 
 ## Next step: Stage 4 importance-transfer diagnostic

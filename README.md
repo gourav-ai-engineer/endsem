@@ -2,7 +2,7 @@
 
 Research repository for studying whether task-conditioned causal correspondence between attention heads in bidirectional encoder Transformers and causal decoder Transformers can transfer pruning utility.
 
-**Status:** Five exploratory Stage 3 causal pilot seeds completed. Causal pair stability failed; pruning-utility transfer remains untested.
+**Status:** Five exploratory Stage 3 causal pilot seeds completed. Causal pair stability failed; Stage 4 held-out utility-transfer diagnostic is next.
 
 ## Research question
 
