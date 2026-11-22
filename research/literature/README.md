@@ -1,5 +1,9 @@
 # Literature Review Workflow
 
+## Current review
+
+The 2025–2026 attention-head pruning review, evidence table, candidate gaps, and proposed study protocol are in [attention_head_pruning_2025_2026_review.md](attention_head_pruning_2025_2026_review.md).
+
 ## Required fields for every paper
 
 Record: complete citation, DOI/arXiv/ACL ID, canonical URL, venue/version, model architectures, tasks/datasets, head representation, importance measure, intervention/pruning mechanism, matching/transfer method, metrics, main findings, limitations, code/data availability, full-text verification status, and relevance to RQ1–RQ6.
